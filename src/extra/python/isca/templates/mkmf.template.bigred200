@@ -1,0 +1,31 @@
+# template for BigRed200 at Indiana University
+# Uses Cray programming environment with Intel compilers
+# Compiler wrappers: ftn (Fortran), cc (C)
+
+# Use pkg-config for NetCDF paths (Cray modules provide this)
+CPPFLAGS = `pkg-config --cflags netcdf`
+NETCDF_LIBS = `pkg-config --libs netcdf netcdf-fortran`
+
+# FFLAGS for Intel Fortran compiler (via ftn wrapper):
+#  -fpp: Use the fortran preprocessor
+#  -stack_temps: Put temporary runtime arrays on the stack, not heap
+#  -safe_cray_ptr: Cray pointers don't alias other variables
+#  -ftz: Denormal numbers are flushed to zero
+#  -assume byterecl: Specifies the units for the OPEN statement as bytes
+#  -i4: 4 byte integers
+#  -r8: 8 byte reals
+#  -O2: Level 2 speed optimizations
+#  -diag-disable 6843: Suppress INTENT(OUT) warning common in GFDL code
+#  -mcmodel large: Support large memory model
+
+FFLAGS = $(CPPFLAGS) -fpp -stack_temps -safe_cray_ptr -ftz -assume byterecl -i4 -r8 -O2 -diag-disable 6843 -mcmodel=large $(NETCDF_LIBS)
+
+# Cray compiler wrappers handle MPI automatically
+FC = $(F90)
+LD = $(F90)
+
+# Linker flags - Cray wrappers handle most of this, but we specify NetCDF explicitly
+LDFLAGS = $(NETCDF_LIBS)
+
+# C compiler flags
+CFLAGS = -D__IFC $(CPPFLAGS)
