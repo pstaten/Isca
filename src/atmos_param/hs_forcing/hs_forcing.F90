@@ -38,7 +38,7 @@ use           fms_mod, only: error_mesg, FATAL, file_exist,       &
                              write_version_number, stdlog,        &
                              uppercase, read_data, write_data, set_domain
 
-use  time_manager_mod, only: time_type, get_time
+use  time_manager_mod, only: time_type, get_time, length_of_year ! pws; this is helpful to get the QBO calculation correct
 
 use  diag_manager_mod, only: register_diag_field, send_data
 
@@ -73,6 +73,18 @@ private
 !-------------------- namelist -----------------------------------------
 
    logical :: no_forcing = .false.
+   logical :: do_sin_qbo = .true. ! pws
+   logical :: do_ewa_htg = .true. ! pws
+
+   ! namelist parameters for ewa_heating
+   real :: h_amp = 0.1/86400.        ! Kelvin per day
+   real :: p_s = 100000.            ! Pascals
+   real :: p_center = 5000.         ! Pascals
+   real :: p_width = 0.0175         ! Pascals
+   real :: lat_width = 0.4          ! Radians
+
+   ! namelist parameters for fake_qbo
+   real :: qbo_amp = 20.                  ! m/s
 
    real :: t_zero=315., t_strat=200., delh=60., delv=10., eps=0., sigma_b=0.7
    real :: P00 = 1.e5, p_trop  = 1.e4, alpha = 2./7
@@ -106,6 +118,8 @@ private
    real :: ml_depth=1               ! depth for heat capacity calculation
    real :: spinup_time=10800.     ! number of days to spin up heat capacity for - req. multiple of orbital_period
 
+   real, parameter ::  daypsec=1./86400. ! pws
+
 
 !-----------------------------------------------------------------------
 
@@ -119,7 +133,9 @@ private
                               u_wind_file, v_wind_file, equilibrium_t_option,&
                               equilibrium_t_file, p_trop, alpha, peri_time, smaxis, albedo, &
                               lapse, h_a, tau_s, orbital_period,         &
-                              heat_capacity, ml_depth, spinup_time, stratosphere_t_option, P00
+                              heat_capacity, ml_depth, spinup_time, stratosphere_t_option, P00, &
+                              do_sin_qbo, do_ewa_htg, &
+                              h_amp, p_s, p_center, p_width, lat_width, A
 
 !-----------------------------------------------------------------------
 
@@ -162,6 +178,7 @@ contains
 
       real, intent(in),    dimension(:,:,:), optional :: mask
    integer, intent(in),    dimension(:,:)  , optional :: kbot
+   integer :: nlon, nlat, nlev ! pws
 !-----------------------------------------------------------------------
    real, dimension(size(t,1),size(t,2))           :: ps, diss_heat, h_trop
    real, dimension(size(t,1),size(t,2),size(t,3)) :: ttnd, utnd, vtnd, teq, pmass
@@ -170,6 +187,7 @@ contains
    logical :: used
    real    :: flux, sink, value
    character(len=128) :: scheme, params
+   integer :: seconds, days, daysperyear ! pws
 
 !-----------------------------------------------------------------------
      if (no_forcing) return
@@ -218,6 +236,39 @@ contains
       if (id_udt > 0) used = send_data ( id_udt, utnd, Time)
 !      if (id_vdt > 0) used = send_data ( id_vdt, vtnd, Time, is, js)
       if (id_vdt > 0) used = send_data ( id_vdt, vtnd, Time)
+
+!-----------------------------------------------------------------------
+
+    ! -------call for the use of do_sin_qbo-----------------
+       if (do_sin_qbo) then
+         ! print *, 'do_sin_qbo is set'
+         nlon = size(p_full,1)
+         nlat = size(p_full,2)
+         nlev = size(p_full,3)
+         ! this gives us the number of days per year so fake_qbo knows how quickly to advance downward
+         ! this should just be 360 for the Isca models
+         call get_time(length_of_year(),seconds,daysperyear)
+         ! this gives us the actual time to compare with the length of the year
+         call get_time(Time,seconds,days)
+         ! call fake_qbo
+         call fake_qbo(p_full, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)    
+         ! add this u tendency to the u tendency being calculated by damping_driver
+         udt = udt + utnd
+       ! else
+       !   print *, 'do_sin_qbo is not set'
+       end if
+     ! ---------------------------
+
+     ! -------call for the use of do_ewa_htg -----------------
+     if (do_ewa_htg ) then
+             ! print *, 'do_ewa_htg  is set'
+         call ewa_heating(lat, p_full, ttnd)
+         tdt = tdt + ttnd
+       ! else
+       !   print *, 'do_ewa_htg  is not set'
+       end if
+     ! ---------------------------
+
 
 !-----------------------------------------------------------------------
 !     thermal forcing for held & suarez (1994) benchmark calculation
@@ -677,6 +728,114 @@ real :: umean, vmean
 !-----------------------------------------------------------------------
 
  end subroutine rayleigh_damping
+
+!#######################################################################
+
+     subroutine ewa_heating (lat,p_full,ttnd)
+      real, dimension(:,:)  ,intent(in)    :: lat
+      real, dimension(:,:,:),intent(in)    :: p_full
+      real, dimension(:,:,:),intent(inout) :: ttnd
+      ! local variables
+      integer :: i,j,k
+      real    :: p_factor,lat_factor
+
+      ! This is an implimentation of the heating profile specified in Ewa Bednarz' work.
+      ! Q(\textup{lat}, p)=Q_{max} \cdot \exp{\left [-\left ( \frac{\textup{lat}^2}{2\times0.4^2} +\frac{(p/p_s-50/p_s)^2}{2\times0.0175^2}\right )\right ]}
+      ! where Q_{max}=1/8640 K/s (that's 10 K per day, which is big)
+      ! and p_s=1000 hPa
+
+
+
+
+      ttnd = 0.
+      do k = 1,size(p_full,3)
+        do j = 1,size(lat,2)
+          do i = 1,size(lat,1)
+            ! vertical component
+            p_factor = exp( -(p_full(i,j,k)/p_s-p_center/p_s)**2/(2*p_width**2))
+
+            ! latitudinal component
+            lat_factor = exp( -(lat(i,j))**2/(2*(lat_width)**2) )
+
+            ! everything together
+            ttnd(i,j,k) = h_amp*p_factor*lat_factor
+          enddo
+        enddo
+      enddo
+
+     end subroutine ewa_heating
+
+
+
+!#######################################################################
+
+
+     subroutine fake_qbo (pfull, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)
+        implicit none
+        integer, intent(in)                      :: seconds, days, daysperyear
+        real,    intent(in),  dimension(nlon,nlat)     :: lat
+        real,    intent(in),  dimension(nlon,nlat,nlev)   :: pfull, zfull, u
+        real,    intent(out), dimension(nlon,nlat,nlev)   :: utnd
+        integer, intent(in) :: nlon, nlat, nlev
+
+        ! qbo: QBO profile (m/s)
+        ! alt_profile: altitude profile (nlon x nlat x nlev)
+        ! relax_rate: relaxation rate (inverse of nudging timescale) (s^-1)
+        real, dimension(nlon,nlat,nlev) :: qbo, alt_profile, relax_rate
+
+        ! lat_profile: latitude profile (nlon x nlat)
+        real, dimension(nlon,nlat) :: lat_profile
+
+        ! ilev: loop index for vertical levels
+        integer :: ilev
+
+        ! m: QBO vertical wavenumber (m^-1)
+        ! nu: QBO frequency (s^-1)
+        ! p_b: bottom level of relaxation profile (Pa)
+        ! del_p_b: transition width in TANH for bottom level (Pa)
+        ! p_t: top level of relaxation profile (Pa)
+        ! del_p_t: transition width in TANH for top level (Pa)
+        ! lat_n: northern latitude limit of the relaxation profile (radians)
+        ! lat_s: southern latitude limit of the relaxation profile (radians)
+        ! del_lat: transition width in TANH for latitude profile (radians)
+        ! alpha: relaxation rate (s^-1)
+        real :: m, nu, p_b, del_p_b, p_t, del_p_t, lat_n, lat_s, del_lat, alpha
+        !-----------------------------------------------------------------------
+
+        ! print *, 'subroutine fake_qbo'
+
+      ! QBO function
+      ! qbo_amp is now a namelist parameter
+        nu = 2. * acos(-1.0) / ((28.0/12.0) * daysperyear/daypsec) ! 28-month period
+        m = -2. * acos(-1.0) / 40000 ! 40 km vertical wavelength
+        qbo = qbo_amp * COS(m * zfull - nu * (days*24*3600 + seconds))
+
+      ! Relaxation rate (inverse of nudging timescale)
+        alpha = (1./(5 * 24 * 3600)) ! 5-day relaxation timescale
+
+      ! Altitude profile (nlon x nlat x nlev)
+        p_b = 8000 ! 80 hPa
+        del_p_b = 500 ! 5 hPa
+        p_t = 800 ! 8 hPa
+        del_p_t = 50 ! 0.5 hPa
+        alt_profile = (1-TANH((pfull-p_b)/del_p_b)) * (1+TANH((pfull-p_t)/del_p_t))
+
+      ! Latitude profile (nlon x nlat)
+        lat_n = (acos(-1.)*12)/180. ! 12°N
+        lat_s = (acos(-1.)*(-12.))/180. ! 12°S
+        del_lat = (acos(-1.)*2)/180. ! 2°
+        lat_profile = (1+TANH((lat-lat_s)/del_lat)) * (1-TANH((lat-lat_n)/del_lat))
+
+      ! element-wise relaxation rate
+        do ilev = 1, nlev,1
+          relax_rate(:,:,ilev) = alpha * alt_profile(:,:,ilev) * lat_profile / 16
+        end do
+
+      ! Calculate the actual u-tendency from the QBO nudging
+        utnd = (qbo - u) * (1.0-EXP(-relax_rate))
+
+    end subroutine fake_qbo
+
 
 !#######################################################################
 
