@@ -135,7 +135,7 @@ private
                               lapse, h_a, tau_s, orbital_period,         &
                               heat_capacity, ml_depth, spinup_time, stratosphere_t_option, P00, &
                               do_sin_qbo, do_ewa_htg, &
-                              h_amp, p_s, p_center, p_width, lat_width, A
+                              h_amp, p_s, p_center, p_width, lat_width, qbo_amp
 
 !-----------------------------------------------------------------------
 

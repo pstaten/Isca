@@ -74,7 +74,7 @@ module damping_driver_mod
                                       do_mg_drag, do_conserve_energy, &
                                       do_const_drag, const_drag_amp,const_drag_off, &
                                       do_sin_qbo, do_ewa_htg, &
-                                      h_amp, p_s, p_center, p_width, lat_width, A
+                                      h_amp, p_s, p_center, p_width, lat_width, qbo_amp
                                           !mj
     
     !
