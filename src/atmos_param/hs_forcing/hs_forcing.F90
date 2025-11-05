@@ -73,8 +73,8 @@ private
 !-------------------- namelist -----------------------------------------
 
    logical :: no_forcing = .false.
-   logical :: do_sin_qbo = .true. ! pws
-   logical :: do_ewa_htg = .true. ! pws
+   logical :: do_sin_qbo = .false. ! pws
+   logical :: do_ewa_htg = .false. ! pws
 
    ! namelist parameters for ewa_heating
    real :: h_amp = 0.1/86400.        ! Kelvin per day

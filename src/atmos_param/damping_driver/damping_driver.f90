@@ -54,7 +54,7 @@ module damping_driver_mod
        real     :: const_drag_off = 0.
        logical  :: do_conserve_energy = .false.
     ! also add the fake_qbo subroutine
-       logical  :: do_sin_qbo = .true.
+       logical  :: do_sin_qbo = .false.
        logical  :: do_ewa_htg = .false.
 
     ! namelist parameters for ewa_heating

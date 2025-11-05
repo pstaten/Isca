@@ -21,7 +21,7 @@ cb = DryCodeBase.from_directory(GFDL_BASE)
 # create an Experiment object to handle the configuration of model parameters
 # and output diagnostics
 
-exp_name = 'held_suarez_default'
+exp_name = 'held_suarez_qbo'
 exp = Experiment(exp_name, codebase=cb)
 
 #Tell model how to write diagnostics
@@ -81,6 +81,7 @@ namelist = Namelist({
         'kf':   -1.,       # BL momentum frictional timescale (default 1 days)
 
         'do_conserve_energy':   True,  # convert dissipated momentum into heat (default True)
+        'do_sin_qbo': True,
     },
 
     'diag_manager_nml': {
