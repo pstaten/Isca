@@ -1,0 +1,21 @@
+echo "Loading modules for Isca on IU BigRed200"
+
+# Purge existing modules to start clean
+module purge
+
+# Load Intel programming environment (BigRed200 uses Cray PE)
+module load PrgEnv-intel
+
+# Load NetCDF-Fortran (adjust version as needed - check with 'module avail netcdf')
+# You may need to check the exact module names on BigRed200
+module load cray-netcdf
+module load cray-hdf5
+
+# BigRed200 uses Cray compiler wrappers
+# ftn wraps ifort (Fortran)
+# cc wraps icc (C)
+export F90=ftn
+export CC=cc
+
+# Set the mkmf template to use Intel compiler settings
+export GFDL_MKMF_TEMPLATE=bigred200
