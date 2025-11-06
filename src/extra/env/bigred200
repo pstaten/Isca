@@ -1,15 +1,12 @@
 echo "Loading modules for Isca on IU BigRed200"
 
-# Purge existing modules to start clean
-module purge
-
-# Load Intel programming environment (BigRed200 uses Cray PE)
+# Load modules (matching your .modules file)
 module load PrgEnv-intel
-
-# Load NetCDF-Fortran (adjust version as needed - check with 'module avail netcdf')
-# You may need to check the exact module names on BigRed200
-module load cray-netcdf
+module load cmake
 module load cray-hdf5
+module load cray-netcdf
+module load openmpi
+module load cray-python
 
 # BigRed200 uses Cray compiler wrappers
 # ftn wraps ifort (Fortran)
