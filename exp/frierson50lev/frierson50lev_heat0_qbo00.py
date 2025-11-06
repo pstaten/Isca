@@ -54,7 +54,7 @@ exp.namelist = namelist = Namelist({
      'hours'  : 0,
      'minutes': 0,
      'seconds': 0,
-     'dt_atmos':720,
+     'dt_atmos':600, # pws reduced from 720 for stability with 50 levels
      'current_date' : [1,1,1,0,0,0],
      'calendar' : 'thirty_day'
     },
@@ -130,6 +130,10 @@ exp.namelist = namelist = Namelist({
         'trayfric': -0.25,              # neg. value: time in *days*
         'sponge_pbottom':  800., #5000.,           #Bottom of the model's sponge down to 50hPa (units are Pa)
         'do_conserve_energy': True,             
+        'do_ewa_htg': False,
+        'do_sin_qbo': True,
+        'qbo_amp': 0.,
+
     },
 
     'two_stream_gray_rad_nml': {
@@ -162,8 +166,8 @@ exp.namelist = namelist = Namelist({
         'initial_sphum':[2.e-6],
         'vert_coord_option':'input', #Use the vertical levels from Frierson 2006
         'surf_res':0.5,
-        'scale_heights' : 11.0,
-        'exponent':7.0,
+        'scale_heights' : 12.0, # pws extend model top from 10
+        'exponent':6.5, # pws default 7. 6.5 gives more uniform spacing
         'robert_coeff':0.03
     },
     #'vert_coordinate_nml': {
