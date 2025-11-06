@@ -101,7 +101,6 @@ namelist = Namelist({
         't_strat': 200.,   # stratosphere temperature (default 200K)
         'delh': 60.,       # equator-pole temp gradient (default 60K)
         'delv': 10.,       # lapse rate (default 10K)
-        'eps': 10.,         # pws; add stratospheric polar-equator gradient
         'sigma_b': 0.7,    # boundary layer friction height (default p/ps = sigma = 0.7)
 
         # negative sign is a flag indicating that the units are days
