@@ -110,8 +110,8 @@ namelist = Namelist({
         'kf':   -1.,       # BL momentum frictional timescale (default 1 days)
 
         'do_conserve_energy':   True,  # convert dissipated momentum into heat (default True)
-        'p_trop': 1.e4
-        'stratosphere_t_option': 'hs_like',
+        'p_trop': 1.e4, # default
+        'stratosphere_t_option': 'hs_like', # pws; colder CPT, classic framework, a bit less numerically stable
     },
 
     'diag_manager_nml': {
