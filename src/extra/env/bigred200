@@ -14,7 +14,8 @@ export F90=ftn
 export CC=cc
 
 # Intel Fortran runtime settings
-# Note: Main I/O error handling is done via compiler flags in mkmf template
+# Continue execution even if I/O errors occur during file close operations
+export FORT_CONTINUE_ON_ERR=1
 
 # Set the mkmf template to use Intel compiler settings
 export GFDL_MKMF_TEMPLATE=bigred200

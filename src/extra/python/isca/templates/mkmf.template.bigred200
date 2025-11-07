@@ -18,7 +18,7 @@ NETCDF_LIBS = `pkg-config --libs netcdf netcdf-fortran`
 #  -diag-disable 6843: Suppress INTENT(OUT) warning common in GFDL code
 #  -mcmodel large: Support large memory model
 
-FFLAGS = $(CPPFLAGS) -fpp -stack_temps -safe_cray_ptr -ftz -assume byterecl -assume noold_iostat -assume nostd_intent_in -i4 -r8 -O2 -diag-disable 6843 -mcmodel=large $(NETCDF_LIBS)
+FFLAGS = $(CPPFLAGS) -fpp -stack-temps -safe-cray-ptr -ftz -assume byterecl -i4 -r8 -O2 -diag-disable 6843 -mcmodel=large -no-wrap-margin $(NETCDF_LIBS)
 
 # Cray compiler wrappers handle MPI automatically
 FC = $(F90)
