@@ -5,7 +5,7 @@ import numpy as np
 from isca import IscaCodeBase, DiagTable, Experiment, Namelist, GFDL_BASE
 
 NCORES = 4
-base_dir = os.path.dirname(os.path.realpath(__file__))
+
 # a CodeBase can be a directory on the computer,
 # useful for iterative development
 cb = IscaCodeBase.from_directory(GFDL_BASE)
@@ -19,11 +19,11 @@ cb = IscaCodeBase.from_directory(GFDL_BASE)
 # is used to load the correct compilers.  The env file is always loaded from
 # $GFDL_BASE and not the checked out git repo.
 
-cb.compile()  # compile the source code to working directory $GFDL_WORK/codebase
-
 # create an Experiment object to handle the configuration of model parameters
 # and output diagnostics
-exp = Experiment('frierson50lev_heat0p1_qbo20', codebase=cb)
+exp = Experiment('mima_heat0p0_qbo00', codebase=cb)
+
+exp.inputfiles = [os.path.join(GFDL_BASE,'input/rrtm_input_files/ozone_1990.nc')]
 
 #Tell model how to write diagnostics
 diag = DiagTable()
@@ -70,22 +70,26 @@ diag.add_field('dynamics', 'pk')
 
 exp.diag_table = diag
 
+
 #Empty the run directory ready to run
 exp.clear_rundir()
 
 #Define values for the 'core' namelist
 exp.namelist = namelist = Namelist({
-    'main_nml':{
-     'days'   : 30,
-     'hours'  : 0,
-     'minutes': 0,
-     'seconds': 0,
-     'dt_atmos':600, # pws reduced from 720 for stability with 50 levels
-     'current_date' : [1,1,1,0,0,0],
-     'calendar' : 'thirty_day'
+    'main_nml': {
+        'days'   : 30,
+        'hours'  : 0,
+        'minutes': 0,
+        'seconds': 0,
+        'dt_atmos':600,
+        'current_date' : [1,1,1,0,0,0],
+        'calendar' : 'thirty_day'
     },
 
     'idealized_moist_phys_nml': {
+        'two_stream_gray': False,
+        'do_rrtm_radiation': True,    #Use RRTM radiation, not grey
+        'convection_scheme': 'SIMPLE_BETTS_MILLER',     #Use the simple Betts Miller convection scheme
         'do_damping': True,
         'turb':True,
         'mixed_layer_bc':True,
@@ -94,8 +98,6 @@ exp.namelist = namelist = Namelist({
         'roughness_mom':3.21e-05,
         'roughness_heat':3.21e-05,
         'roughness_moist':3.21e-05,                
-        'two_stream_gray': True,     #Use grey radiation
-        'convection_scheme': 'SIMPLE_BETTS_MILLER', #Use the simple Betts Miller convection scheme from Frierson
     },
 
     'vert_turb_driver_nml': {
@@ -123,23 +125,18 @@ exp.namelist = namelist = Namelist({
 
     #Use a large mixed-layer depth, and the Albedo of the CTRL case in Jucker & Gerber, 2017
     'mixed_layer_nml': {
+        'depth': 100,
+        'albedo_value': 0.205,
         'tconst' : 285.,
         'prescribe_initial_dist':True,
-        'evaporation':True,   
-        'depth': 2.5,                          #Depth of mixed layer used
-        'albedo_value': 0.31,                  #Albedo value used             
+        'evaporation':True,
+        'do_qflux': True        
     },
 
     'qe_moist_convection_nml': {
         'rhbm':0.7,
         'Tmin':160.,
         'Tmax':350.   
-    },
-
-    'betts_miller_nml': {
-       'rhbm': .7   , 
-       'do_simp': False, 
-       'do_shallower': True, 
     },
     
     'lscale_cond_nml': {
@@ -153,20 +150,23 @@ exp.namelist = namelist = Namelist({
     
     'damping_driver_nml': {
         'do_rayleigh': True,
-        'trayfric': -0.25,              # neg. value: time in *days*
-        'sponge_pbottom':  800., #5000.,           #pws sponge down to 8 hPa instead of default 50
-        'do_conserve_energy': True,             
-        'do_ewa_htg': True,
+        'trayfric': -0.5,              # neg. value: time in *days*
+        'sponge_pbottom':  800., # pws sponge bottom to 8 hPa for consistency
+        'do_conserve_energy': True,
+        'do_ewa_htg': False,
         'do_sin_qbo': True,
-        'h_amp': 0.1,
-        'qbo_amp':20.
-
+        'qbo_amp': 0.,
     },
 
-    'two_stream_gray_rad_nml': {
-        'rad_scheme': 'frierson',            #Select radiation scheme to use, which in this case is Frierson
-        'do_seasonal': False,                #do_seasonal=false uses the p2 insolation profile from Frierson 2006. do_seasonal=True uses the GFDL astronomy module to calculate seasonally-varying insolation.
-        'atm_abs': 0.2,                      # default: 0.0        
+    'qflux_nml': {
+        'qflux_amp': 30.0
+    },
+
+    'rrtm_radiation_nml': {
+        'solr_cnst': 1360,  #s set solar constant to 1360, rather than default of 1368.22
+        'dt_rad': 7200, #Use long RRTM timestep
+        'do_read_ozone':True,
+        'ozone_file':'ozone_1990'
     },
 
     # FMS Framework configuration
@@ -201,6 +201,8 @@ exp.namelist = namelist = Namelist({
         'bk': [0.000000, 0.006777, 0.006896, 0.007098, 0.007389, 0.007778, 0.008278, 0.008904, 0.009676, 0.010620, 0.011767, 0.013154, 0.014829, 0.016849, 0.019284, 0.022216, 0.025745, 0.029990, 0.035091, 0.041212, 0.048541, 0.057295, 0.067716, 0.080072, 0.094651, 0.111759, 0.131704, 0.154786, 0.181278, 0.211406, 0.245322, 0.283080, 0.324608, 0.369689, 0.417937, 0.468794, 0.521533, 0.575275, 0.629024, 0.681712, 0.732263, 0.779655, 0.822998, 0.861593, 0.894993, 0.923042, 0.945905, 0.964070, 0.978349, 0.989857, 1.000000],
         'pk': [0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],
     }
+    
+    
 })
 
 #Lets do a run!

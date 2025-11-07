@@ -329,7 +329,6 @@ module damping_driver_mod
    
     ! -------call for the use of do_sin_qbo-----------------
        if (do_sin_qbo) then
-         print *, 'do_sin_qbo is set'
          nlon = size(pfull,1)
          nlat = size(pfull,2)
          nlev = size(pfull,3)
@@ -337,18 +336,13 @@ module damping_driver_mod
          call get_time(Time,seconds,days)
          call fake_qbo(pfull, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)    
          udt = udt + utnd
-       else
-         print *, 'do_sin_qbo is not set'
        end if
 
        ! -------call for the use of do_ewa_htg -----------------
     if (do_ewa_htg) then
-            print *, 'do_ewa_htg is set'
-         call ewa_heating(lat,pfull, ttnd)    
-         tdt = tdt + ttnd
-       else
-               print *, 'do_ewa_htg is not set'
-       end if
+      call ewa_heating(lat,pfull, ttnd)    
+      tdt = tdt + ttnd
+    end if
     ! ---------------------------
 
 
@@ -750,7 +744,6 @@ module damping_driver_mod
         real :: m, nu, p_b, del_p_b, p_t, del_p_t, lat_n, lat_s, del_lat, alpha
         !-----------------------------------------------------------------------
 
-        print *, 'subroutine fake_qbo'
 
       ! QBO function
       ! qbo_amp is now a namelist parameter

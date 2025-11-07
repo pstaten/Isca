@@ -3,7 +3,7 @@ import numpy as np
 from isca import DryCodeBase, DiagTable, Experiment, Namelist, GFDL_BASE
 
 NCORES = 4
-RESOLUTION = 'T42', 50  # pws: T42 horizontal resolution, 50 levels in pressure (default 25)
+RESOLUTION = 'T42', 50  # T42 horizontal resolution, 25 levels in pressure
 
 # a CodeBase can be a directory on the computer,
 # useful for iterative development
@@ -18,11 +18,12 @@ cb = DryCodeBase.from_directory(GFDL_BASE)
 # is used to load the correct compilers.  The env file is always loaded from
 # $GFDL_BASE and not the checked out git repo.
 
+cb.compile()  # compile the source code to working directory $GFDL_WORK/codebase
+
 # create an Experiment object to handle the configuration of model parameters
 # and output diagnostics
 
-exp_name = 'held_suarez_strato'
-exp = Experiment(exp_name, codebase=cb)
+exp = Experiment('hs_heat0p0_qbo20', codebase=cb)
 
 #Tell model how to write diagnostics
 diag = DiagTable()
@@ -71,16 +72,54 @@ exp.diag_table = diag
 
 # define namelist values as python dictionary
 # wrapped as a namelist object.
-namelist = Namelist({
-    'main_nml': {
-        'dt_atmos': 600,
-        'days': 30,
-        'calendar': 'thirty_day',
-        'current_date': [2000,1,1,0,0,0]
+exp.namelist = namelist = Namelist({
+    'main_nml':{
+     'days'   : 30,
+     'hours'  : 0,
+     'minutes': 0,
+     'seconds': 0,
+     'dt_atmos':600, # pws reduced from 720 for stability with 50 levels
+     'current_date' : [1,1,1,0,0,0],
+     'calendar' : 'thirty_day'
     },
 
     'atmosphere_nml': {
         'idealized_moist_model': False  # False for Newtonian Cooling.  True for Isca/Frierson
+    },
+
+    # configure the relaxation profile
+    'hs_forcing_nml': {
+        't_zero': 315.,    # temperature at reference pressure at equator (default 315K)
+        't_strat': 200.,   # stratosphere temperature (default 200K)
+        'delh': 60.,       # equator-pole temp gradient (default 60K)
+        'delv': 10.,       # lapse rate (default 10K)
+        'eps': 0.,         # stratospheric latitudinal variation (default 0K)
+        'sigma_b': 0.7,    # boundary layer friction height (default p/ps = sigma = 0.7)
+
+        # negative sign is a flag indicating that the units are days
+        'ka':   -15.,      # pws faster stratospheric relaxation (default 40 days)
+        'ks':    -4.,      # Boundary layer dependent cooling timescale (default 4 days)
+        'kf':   -1.,       # BL momentum frictional timescale (default 1 days)
+
+        'do_conserve_energy':   True,  # convert dissipated momentum into heat (default True)
+        'p_trop': 1.e4, # default
+        'stratosphere_t_option': 'hs_like', # pws; colder CPT, classic framework, a bit less numerically stable
+        'do_ewa_htg': False # run Ewa's heating
+        'do_sin_qbo': True,  # enable QBO nudging
+        'qbo_amp': 20.0,  # QBO amplitude (m/s)
+    },
+
+    'diag_manager_nml': {
+        'mix_snapshot_average_fields': False
+    },
+
+    'fms_nml': {
+        'domains_stack_size': 600000                        # default: 0
+    },
+
+    'fms_io_nml': {
+        'threading_write': 'single',                         # default: multi
+        'fileset_write': 'single',                           # default: multi
     },
 
     'spectral_dynamics_nml': {
@@ -100,47 +139,12 @@ namelist = Namelist({
         'pk': [0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],
     },
 
-    # configure the relaxation profile
-    'hs_forcing_nml': {
-        't_zero': 315.,    # temperature at reference pressure at equator (default 315K)
-        't_strat': 200.,   # stratosphere temperature (default 200K)
-        'delh': 60.,       # equator-pole temp gradient (default 60K)
-        'delv': 10.,       # lapse rate (default 10K)
-        'eps': 0.,         # stratospheric latitudinal variation (default 0K)
-        'sigma_b': 0.7,    # boundary layer friction height (default p/ps = sigma = 0.7)
-
-        # negative sign is a flag indicating that the units are days
-        'ka':   -15.,      # faster stratospheric relaxation (default 40 days)
-        'ks':    -4.,      # Boundary layer dependent cooling timescale (default 4 days)
-        'kf':   -1.,       # BL momentum frictional timescale (default 1 days)
-
-        'do_conserve_energy':   True,  # convert dissipated momentum into heat (default True)
-        'p_trop': 1.e4, # default
-        'stratosphere_t_option': 'hs_like', # pws; colder CPT, classic framework, a bit less numerically stable
-    },
-
-    'diag_manager_nml': {
-        'mix_snapshot_average_fields': False
-    },
-
-    'fms_nml': {
-        'domains_stack_size': 600000                        # default: 0
-    },
-
-    'fms_io_nml': {
-        'threading_write': 'single',                         # default: multi
-        'fileset_write': 'single',                           # default: multi
-    }
 })
 
-exp.namelist = namelist
 exp.set_resolution(*RESOLUTION)
 
 #Lets do a run!
 if __name__ == '__main__':
-    
-    cb.compile()  # compile the source code to working directory $GFDL_WORK/codebase
-
-    exp.run(1, num_cores=NCORES, use_restart=False)
-    for i in range(2, 13):
+    exp.run(1, num_cores=NCORES, use_restart=True)
+    for i in range(2, 757):
         exp.run(i, num_cores=NCORES)  # use the restart i-1 by default

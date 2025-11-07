@@ -23,7 +23,7 @@ cb.compile()  # compile the source code to working directory $GFDL_WORK/codebase
 
 # create an Experiment object to handle the configuration of model parameters
 # and output diagnostics
-exp = Experiment('frierson50lev_heat0p1_qbo20', codebase=cb)
+exp = Experiment('frierson50lev_heat0p0_qbo00', codebase=cb)
 
 #Tell model how to write diagnostics
 diag = DiagTable()
@@ -156,11 +156,9 @@ exp.namelist = namelist = Namelist({
         'trayfric': -0.25,              # neg. value: time in *days*
         'sponge_pbottom':  800., #5000.,           #pws sponge down to 8 hPa instead of default 50
         'do_conserve_energy': True,             
-        'do_ewa_htg': True,
+        'do_ewa_htg': False,
         'do_sin_qbo': True,
-        'h_amp': 0.1,
-        'qbo_amp':20.
-
+        'qbo_amp': 0.,
     },
 
     'two_stream_gray_rad_nml': {

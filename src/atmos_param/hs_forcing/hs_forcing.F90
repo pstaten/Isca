@@ -241,7 +241,6 @@ contains
 
     ! -------call for the use of do_sin_qbo-----------------
        if (do_sin_qbo) then
-         ! print *, 'do_sin_qbo is set'
          nlon = size(p_full,1)
          nlat = size(p_full,2)
          nlev = size(p_full,3)
@@ -254,18 +253,13 @@ contains
          call fake_qbo(p_full, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)    
          ! add this u tendency to the u tendency being calculated by damping_driver
          udt = udt + utnd
-       ! else
-       !   print *, 'do_sin_qbo is not set'
        end if
      ! ---------------------------
 
      ! -------call for the use of do_ewa_htg -----------------
      if (do_ewa_htg ) then
-             ! print *, 'do_ewa_htg  is set'
          call ewa_heating(lat, p_full, ttnd)
          tdt = tdt + ttnd
-       ! else
-       !   print *, 'do_ewa_htg  is not set'
        end if
      ! ---------------------------
 
@@ -802,7 +796,6 @@ real :: umean, vmean
         real :: m, nu, p_b, del_p_b, p_t, del_p_t, lat_n, lat_s, del_lat, alpha
         !-----------------------------------------------------------------------
 
-        ! print *, 'subroutine fake_qbo'
 
       ! QBO function
       ! qbo_amp is now a namelist parameter

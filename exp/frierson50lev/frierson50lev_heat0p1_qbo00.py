@@ -4,7 +4,7 @@ import numpy as np
 
 from isca import IscaCodeBase, DiagTable, Experiment, Namelist, GFDL_BASE
 
-NCORES = 8
+NCORES = 4
 base_dir = os.path.dirname(os.path.realpath(__file__))
 # a CodeBase can be a directory on the computer,
 # useful for iterative development
@@ -23,24 +23,50 @@ cb.compile()  # compile the source code to working directory $GFDL_WORK/codebase
 
 # create an Experiment object to handle the configuration of model parameters
 # and output diagnostics
-exp = Experiment('frierson_50lev_0bo_heat', codebase=cb)
+exp = Experiment('frierson50lev_heat0p1_qbo00', codebase=cb)
 
 #Tell model how to write diagnostics
 diag = DiagTable()
 diag.add_file('atmos_monthly', 30, 'days', time_units='days')
 
-#Tell model which diagnostics to write
+# === Basic state variables ===
 diag.add_field('dynamics', 'ps', time_avg=True)
-diag.add_field('dynamics', 'bk')
-diag.add_field('dynamics', 'pk')
-diag.add_field('atmosphere', 'precipitation', time_avg=True)
-diag.add_field('mixed_layer', 't_surf', time_avg=True)
-diag.add_field('dynamics', 'sphum', time_avg=True)
 diag.add_field('dynamics', 'ucomp', time_avg=True)
 diag.add_field('dynamics', 'vcomp', time_avg=True)
 diag.add_field('dynamics', 'temp', time_avg=True)
+diag.add_field('dynamics', 'omega', time_avg=True)
+diag.add_field('dynamics', 'height', time_avg=True)
+
+# === Eddy momentum fluxes (CRITICAL for EP flux!) ===
+diag.add_field('dynamics', 'ucomp_vcomp', time_avg=True)  # u'v' - horizontal EP flux
+diag.add_field('dynamics', 'vcomp_temp', time_avg=True)   # v'T' - vertical EP flux component
+diag.add_field('dynamics', 'vcomp_omega', time_avg=True)  # v'ω' - alternative vertical flux
+
+# === Eddy heat fluxes ===
+diag.add_field('dynamics', 'ucomp_temp', time_avg=True)   # u'T'
+diag.add_field('dynamics', 'omega_temp', time_avg=True)   # ω'T'
+
+# === Variances (for eddy kinetic energy, etc.) ===
+diag.add_field('dynamics', 'ucomp_sq', time_avg=True)
+diag.add_field('dynamics', 'vcomp_sq', time_avg=True)
+diag.add_field('dynamics', 'temp_sq', time_avg=True)
+diag.add_field('dynamics', 'omega_sq', time_avg=True)
+
+# === Circulation diagnostics ===
 diag.add_field('dynamics', 'vor', time_avg=True)
 diag.add_field('dynamics', 'div', time_avg=True)
+
+# === Pressure coordinates ===
+diag.add_field('dynamics', 'pres_full', time_avg=True)
+diag.add_field('dynamics', 'pres_half', time_avg=True)
+
+# === HS forcing diagnostics ===
+diag.add_field('hs_forcing', 'teq', time_avg=True)
+diag.add_field('hs_forcing', 'tdt_ndamp', time_avg=True)
+
+# === Spectral truncation info (static fields) ===
+diag.add_field('dynamics', 'bk')
+diag.add_field('dynamics', 'pk')
 
 exp.diag_table = diag
 
@@ -54,7 +80,7 @@ exp.namelist = namelist = Namelist({
      'hours'  : 0,
      'minutes': 0,
      'seconds': 0,
-     'dt_atmos':720,
+     'dt_atmos':600, # pws reduced from 720 for stability with 50 levels
      'current_date' : [1,1,1,0,0,0],
      'calendar' : 'thirty_day'
     },
@@ -128,10 +154,12 @@ exp.namelist = namelist = Namelist({
     'damping_driver_nml': {
         'do_rayleigh': True,
         'trayfric': -0.25,              # neg. value: time in *days*
-        'sponge_pbottom':  800., #5000.,           #Bottom of the model's sponge down to 50hPa (units are Pa)
+        'sponge_pbottom':  800., #5000.,           #pws sponge down to 8 hPa instead of default 50
         'do_conserve_energy': True,             
-        'do_sin_qbo': True,
         'do_ewa_htg': True,
+        'do_sin_qbo': True,
+        'h_amp': 0.1,
+        'qbo_amp': 0.,
     },
 
     'two_stream_gray_rad_nml': {
@@ -158,13 +186,10 @@ exp.namelist = namelist = Namelist({
         'damping_order': 4,             
         'water_correction_limit': 200.e2,
         'reference_sea_level_press':1.0e5,
-        'num_levels':50,               #How many model pressure levels to use
+        'num_levels':50,               # pws levels from Frierson 2006
         'valid_range_t':[100.,800.],
         'initial_sphum':[2.e-6],
         'vert_coord_option':'input', #Use the vertical levels from Frierson 2006
-        'surf_res':0.5,
-        'scale_heights' : 11.0,
-        'exponent':7.0,
         'robert_coeff':0.03
     },
     #'vert_coordinate_nml': {
@@ -179,6 +204,6 @@ exp.namelist = namelist = Namelist({
 
 #Lets do a run!
 if __name__=="__main__":
-    exp.run(1, use_restart=False, num_cores=NCORES)
-    for i in range(2,700):
+    exp.run(1, use_restart=True, num_cores=NCORES)
+    for i in range(2,757): # 84 months spinup + 2*28*12
         exp.run(i, num_cores=NCORES)
