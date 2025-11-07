@@ -2,8 +2,8 @@ import numpy as np
 
 from isca import DryCodeBase, DiagTable, Experiment, Namelist, GFDL_BASE
 
-NCORES = 8
-RESOLUTION = 'T42', 40  # pws: T42 horizontal resolution, 40 levels in pressure (default 25)
+NCORES = 4
+RESOLUTION = 'T42', 50  # pws: T42 horizontal resolution, 50 levels in pressure (default 25)
 
 # a CodeBase can be a directory on the computer,
 # useful for iterative development
