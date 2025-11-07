@@ -5,7 +5,6 @@ module load PrgEnv-intel
 module load cmake
 module load cray-hdf5
 module load cray-netcdf
-module load openmpi
 module load cray-python
 
 # BigRed200 uses Cray compiler wrappers
