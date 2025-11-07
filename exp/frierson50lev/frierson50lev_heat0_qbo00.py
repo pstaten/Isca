@@ -166,7 +166,6 @@ exp.namelist = namelist = Namelist({
         'rad_scheme': 'frierson',            #Select radiation scheme to use, which in this case is Frierson
         'do_seasonal': False,                #do_seasonal=false uses the p2 insolation profile from Frierson 2006. do_seasonal=True uses the GFDL astronomy module to calculate seasonally-varying insolation.
         'atm_abs': 0.2,                      # default: 0.0        
-        'linear_tau': 0.2 # Increase from default 0.1 to raise the linear term's contribution
     },
 
     # FMS Framework configuration
