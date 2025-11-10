@@ -155,7 +155,7 @@ exp.namelist = namelist = Namelist({
         'do_conserve_energy': True,
         'do_ewa_htg': True,
         'do_sin_qbo': True,
-        'h_amp':0.1,
+        'h_amp':0.1/86400.,
         'qbo_amp': 20.,
     },
 

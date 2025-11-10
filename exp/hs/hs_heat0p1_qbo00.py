@@ -106,7 +106,7 @@ exp.namelist = namelist = Namelist({
         'stratosphere_t_option': 'hs_like', # pws; colder CPT, classic framework, a bit less numerically stable
         'do_ewa_htg': True # run Ewa's heating
         'do_sin_qbo': True,  # enable QBO nudging
-        'h_amp': 0.1,
+        'h_amp': 0.1/86400.,
         'qbo_amp': 0.0,  # QBO amplitude (m/s)
     },
 
