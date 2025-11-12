@@ -153,9 +153,9 @@ exp.namelist = namelist = Namelist({
         'trayfric': -0.5,              # neg. value: time in *days*
         'sponge_pbottom':  800., # pws sponge bottom to 8 hPa for consistency
         'do_conserve_energy': True,
-        'do_ewa_htg': False,
+        'do_ewa_htg': True,
         'do_sin_qbo': True,
-        'h_amp':0.1,
+        'h_amp':0.1/86400.,
         'qbo_amp': 20.,
     },
 
