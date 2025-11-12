@@ -1,0 +1,16 @@
+echo "Loading basic ubuntu-conda environment"
+
+# this is just to make sure I don't get interference from built-in compilers and the like
+module purge
+
+# this fixed a bug during compiling on quartz. The bug was: undefined reference to `std::condition_variable::wait(std::unique_lock<std::mutex>&)@GLIBCXX_3.4.30'
+export LD_LIBRARY_PATH=~/miniconda3/envs/isca_env/lib:$LD_LIBRARY_PATH
+
+# this fixed a runtime error on quartz where openmpi couldn't see it had multiple processors available, even on a debug job with 16 processors
+export OMPI_MCA_rmaps_base_oversubscribe=1
+
+# this defaults to ia64, but we will use gfortran, not ifort
+export GFDL_MKMF_TEMPLATE=ubuntu_conda
+
+export F90=mpifort
+export CC=mpicc
