@@ -188,9 +188,9 @@ exp.namelist = namelist = Namelist({
         'water_correction_limit': 200.e2,
         'reference_sea_level_press':1.0e5,
         'num_levels':50,               # pws levels from Frierson 2006
-        'valid_range_t':[50.,800.],
+        'valid_range_t':[100.,800.],
         'initial_sphum':[2.e-6],
-        'vert_coord_option':'uneven_sigma', #Use the vertical levels from Frierson 2006
+        'vert_coord_option':'uneven_sigma', # trying to get a better stratosphere
         'robert_coeff':0.03,
         'scale_heights': 6.0,      # Model top at ~e^(-6) ≈ 0.25 hPa (much higher!)
         'surf_res': 0.1,           # 10% of range concentrated near surface
