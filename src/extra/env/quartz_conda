@@ -1,7 +1,7 @@
 echo "Loading basic ubuntu-conda environment"
 
 # this helps make sure it's the conda environment's openmpi that is used, rather than the system's, which isn't always compatible with the makefile
-module unload openmpi
+module purge
 
 # this fixed a bug during compiling. The bug was: undefined reference to `std::condition_variable::wait(std::unique_lock<std::mutex>&)@GLIBCXX_3.4.30'
 export LD_LIBRARY_PATH=~/miniconda3/envs/isca_env/lib:$LD_LIBRARY_PATH

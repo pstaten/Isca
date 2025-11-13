@@ -4,7 +4,7 @@ import numpy as np
 
 from isca import IscaCodeBase, DiagTable, Experiment, Namelist, GFDL_BASE
 
-NCORES = 4
+NCORES = 32
 
 # a CodeBase can be a directory on the computer,
 # useful for iterative development
@@ -188,7 +188,7 @@ exp.namelist = namelist = Namelist({
         'water_correction_limit': 200.e2,
         'reference_sea_level_press':1.0e5,
         'num_levels':50,               # pws levels from Frierson 2006
-        'valid_range_t':[100.,800.],
+        'valid_range_t':[50.,800.],
         'initial_sphum':[2.e-6],
         'vert_coord_option':'input', #Use the vertical levels from Frierson 2006
         'robert_coeff':0.03
