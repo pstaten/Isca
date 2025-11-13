@@ -151,7 +151,7 @@ exp.namelist = namelist = Namelist({
     'damping_driver_nml': {
         'do_rayleigh': True,
         'trayfric': -0.25,              # quarter-day damping to prevent cold stratosphere crash; neg. value: time in *days*
-        'sponge_pbottom':  800., # pws sponge bottom to 8 hPa for consistency
+        'sponge_pbottom':  1200., # pws sponge bottom to 12 hPa for consistency
         'do_conserve_energy': True,
         'do_ewa_htg': True,
         'do_sin_qbo': True,
