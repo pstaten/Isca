@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=mima_runner
+#SBATCH --job-name=mima_debugger
 #SBATCH --nodes=1
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=32
 #SBATCH --time=01:00:00
 #SBATCH -p debug
 #SBATCH -A r00132
-#SBATCH -o mima_runner_%j.txt
-#SBATCH -e mima_runner_%j.err
+#SBATCH -o mima_debugger_%j.txt
+#SBATCH -e mima_debugger_%j.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pwstaten@iu.edu
 
