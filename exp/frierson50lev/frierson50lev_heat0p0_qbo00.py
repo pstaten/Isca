@@ -4,7 +4,7 @@ import numpy as np
 
 from isca import IscaCodeBase, DiagTable, Experiment, Namelist, GFDL_BASE
 
-NCORES = 4
+NCORES = 16
 base_dir = os.path.dirname(os.path.realpath(__file__))
 # a CodeBase can be a directory on the computer,
 # useful for iterative development
@@ -18,8 +18,6 @@ cb = IscaCodeBase.from_directory(GFDL_BASE)
 # environment variable is used to determine which `$GFDL_BASE/src/extra/env` file
 # is used to load the correct compilers.  The env file is always loaded from
 # $GFDL_BASE and not the checked out git repo.
-
-cb.compile()  # compile the source code to working directory $GFDL_WORK/codebase
 
 # create an Experiment object to handle the configuration of model parameters
 # and output diagnostics
@@ -188,16 +186,11 @@ exp.namelist = namelist = Namelist({
         'num_levels':50,               # pws levels from Frierson 2006
         'valid_range_t':[100.,800.],
         'initial_sphum':[2.e-6],
-        'vert_coord_option':'input', #Use the vertical levels from Frierson 2006
-        'robert_coeff':0.03
-    },
-    #'vert_coordinate_nml': {
-    #    'bk': [0.000000, 0.0117665, 0.0196679, 0.0315244, 0.0485411, 0.0719344, 0.1027829, 0.1418581, 0.1894648, 0.2453219, 0.3085103, 0.3775033, 0.4502789, 0.5244989, 0.5977253, 0.6676441, 0.7322627, 0.7900587, 0.8400683, 0.8819111, 0.9157609, 0.9422770, 0.9625127, 0.9778177, 0.9897489, 1.0000000],
-    #    'pk': [0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],
-#       }
-    'vert_coordinate_nml': {
-        'bk': [0.000000, 0.006777, 0.006896, 0.007098, 0.007389, 0.007778, 0.008278, 0.008904, 0.009676, 0.010620, 0.011767, 0.013154, 0.014829, 0.016849, 0.019284, 0.022216, 0.025745, 0.029990, 0.035091, 0.041212, 0.048541, 0.057295, 0.067716, 0.080072, 0.094651, 0.111759, 0.131704, 0.154786, 0.181278, 0.211406, 0.245322, 0.283080, 0.324608, 0.369689, 0.417937, 0.468794, 0.521533, 0.575275, 0.629024, 0.681712, 0.732263, 0.779655, 0.822998, 0.861593, 0.894993, 0.923042, 0.945905, 0.964070, 0.978349, 0.989857, 1.000000],
-        'pk': [0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],
+        'vert_coord_option':'uneven_sigma', # trying to get a better stratosphere
+        'robert_coeff':0.03,
+        'scale_heights': 6.0,      # Model top at ~e^(-6) ≈ 0.25 hPa (much higher!)
+        'surf_res': 0.1,           # 10% of range concentrated near surface
+        'exponent': 2.5,           # Moderate surface concentration
     }
 })
 
