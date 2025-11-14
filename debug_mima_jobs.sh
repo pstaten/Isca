@@ -3,8 +3,8 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=32
-#SBATCH --time=06:00:00
-#SBATCH -p general
+#SBATCH --time=01:00:00
+#SBATCH -p debug
 #SBATCH -A r00132
 #SBATCH -o mima_runner_%j.txt
 #SBATCH -e mima_runner_%j.err
