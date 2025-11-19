@@ -199,5 +199,5 @@ exp.namelist = namelist = Namelist({
 #Lets do a run!
 if __name__=="__main__":
     exp.run(1, use_restart=True, num_cores=NCORES)
-    for i in range(2,757): # 84 months spinup + 2*28*12
+    for i in range(2,1429): # 84 months spinup + 4*28*12
         exp.run(i, num_cores=NCORES)

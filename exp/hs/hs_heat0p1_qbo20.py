@@ -140,5 +140,5 @@ exp.set_resolution(*RESOLUTION)
 #Lets do a run!
 if __name__ == '__main__':
     exp.run(1, num_cores=NCORES, use_restart=True)
-    for i in range(2, 757):
+    for i in range(2,1429): # 84 months spinup + 4*28*12
         exp.run(i, num_cores=NCORES)  # use the restart i-1 by default
