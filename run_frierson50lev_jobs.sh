@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=4
 #SBATCH --cpus-per-task=32
-#SBATCH --time=06:00:00
+#SBATCH --time=48:00:00
 #SBATCH -p general
 #SBATCH -A r00132
 #SBATCH -o frierson50lev_runner_%j.txt

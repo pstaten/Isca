@@ -102,7 +102,7 @@ exp.namelist = namelist = Namelist({
         'do_conserve_energy':   True,  # convert dissipated momentum into heat (default True)
         'p_trop': 1.e4, # default
         'stratosphere_t_option': 'hs_like', # pws; colder CPT, classic framework, a bit less numerically stable
-        'do_ewa_htg': False # run Ewa's heating
+        'do_ewa_htg': False, # run Ewa's heating
         'do_sin_qbo': True,  # enable QBO nudging
         'qbo_amp': 0.0,  # QBO amplitude (m/s)
     },
