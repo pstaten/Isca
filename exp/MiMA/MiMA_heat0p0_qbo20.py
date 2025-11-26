@@ -41,6 +41,7 @@ diag.add_field('dynamics', 'height', time_avg=True)
 diag.add_field('dynamics', 'ucomp_vcomp', time_avg=True)  # u'v' - horizontal EP flux
 diag.add_field('dynamics', 'vcomp_temp', time_avg=True)   # v'T' - vertical EP flux component
 diag.add_field('dynamics', 'vcomp_omega', time_avg=True)  # v'ω' - alternative vertical flux
+diag.add_field('dynamics', 'ucomp_omega', time_avg=True)  # u'ω'
 
 # === Eddy heat fluxes ===
 diag.add_field('dynamics', 'ucomp_temp', time_avg=True)   # u'T'
