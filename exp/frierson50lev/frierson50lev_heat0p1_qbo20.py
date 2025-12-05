@@ -59,6 +59,21 @@ diag.add_field('dynamics', 'div', time_avg=True)
 diag.add_field('dynamics', 'pres_full', time_avg=True)
 diag.add_field('dynamics', 'pres_half', time_avg=True)
 
+# === Moisture fields and transport ===
+diag.add_field('dynamics', 'sphum', time_avg=True)
+diag.add_field('dynamics', 'ucomp_sphum', time_avg=True)  # zonal moisture flux
+diag.add_field('dynamics', 'vcomp_sphum', time_avg=True)  # meridional moisture flux
+diag.add_field('dynamics', 'omega_sphum', time_avg=True)  # vertical moisture flux
+diag.add_field('dynamics', 'sphum_sq', time_avg=True)     # moisture variance
+
+# === Moisture tendencies ===
+diag.add_field('atmosphere', 'dt_qg_convection', time_avg=True)
+diag.add_field('atmosphere', 'dt_qg_condensation', time_avg=True)
+diag.add_field('atmosphere', 'dt_qg_diffusion', time_avg=True)
+
+# === Relative humidity ===
+diag.add_field('atmosphere', 'rh', time_avg=True)
+
 # === HS forcing diagnostics ===
 diag.add_field('hs_forcing', 'teq', time_avg=True)
 diag.add_field('hs_forcing', 'tdt_ndamp', time_avg=True)
