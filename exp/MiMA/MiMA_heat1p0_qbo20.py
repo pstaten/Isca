@@ -73,6 +73,11 @@ diag.add_field('atmosphere', 'dt_qg_convection', time_avg=True)
 diag.add_field('atmosphere', 'dt_qg_condensation', time_avg=True)
 diag.add_field('atmosphere', 'dt_qg_diffusion', time_avg=True)
 
+# === Temperature tendencies (heating rates) ===
+diag.add_field('atmosphere', 'dt_tg_convection', time_avg=True)
+diag.add_field('atmosphere', 'dt_tg_condensation', time_avg=True)
+diag.add_field('atmosphere', 'dt_tg_diffusion', time_avg=True)
+
 # === Relative humidity ===
 diag.add_field('atmosphere', 'rh', time_avg=True)
 
