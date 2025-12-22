@@ -148,6 +148,7 @@ private
    real, allocatable, dimension(:,:) :: tg_prev
 
    integer :: id_teq, id_h_trop, id_tdt, id_udt, id_vdt, id_tdt_diss, id_diss_heat, id_local_heating, id_newtonian_damping
+   integer :: id_udt_qbo, id_tdt_ewa
    real    :: missing_value = -1.e10
    real    :: xwidth, ywidth, xcenter, ycenter ! namelist values converted from degrees to radians
    real    :: srfamp ! local_heating_srfamp converted from deg/day to deg/sec
@@ -250,9 +251,16 @@ contains
          ! this gives us the actual time to compare with the length of the year
          call get_time(Time,seconds,days)
          ! call fake_qbo
-         call fake_qbo(p_full, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)    
+         call fake_qbo(p_full, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)
          ! add this u tendency to the u tendency being calculated by damping_driver
          udt = udt + utnd
+
+!----- diagnostics -----
+
+         if ( id_udt_qbo > 0 ) then
+            used = send_data ( id_udt_qbo, utnd, Time, rmask=mask )
+         endif
+
        end if
      ! ---------------------------
 
@@ -260,6 +268,13 @@ contains
      if (do_ewa_htg ) then
          call ewa_heating(lat, p_full, ttnd)
          tdt = tdt + ttnd
+
+!----- diagnostics -----
+
+         if ( id_tdt_ewa > 0 ) then
+            used = send_data ( id_tdt_ewa, ttnd, Time, rmask=mask )
+         endif
+
        end if
      ! ---------------------------
 
@@ -495,6 +510,18 @@ contains
 
          id_diss_heat = register_diag_field ( mod_name, 'diss_heat_rdamp', axes(1:2), &
                    Time, 'Vertically integrated dissipative heating from Rayleigh damping (W/m2)', 'W/m2')
+      endif
+
+      if (do_sin_qbo) then
+         id_udt_qbo = register_diag_field ( mod_name, 'udt_qbo', axes(1:3), Time, &
+                      'u wind tendency from QBO forcing (m/s2)', 'm/s2', &
+                      missing_value=missing_value     )
+      endif
+
+      if (do_ewa_htg) then
+         id_tdt_ewa = register_diag_field ( mod_name, 'tdt_ewa', axes(1:3), Time, &
+                      'temperature tendency from EWA heating (K/s)', 'K/s', &
+                      missing_value=missing_value     )
       endif
 
      if(trim(local_heating_option) == 'from_file') then

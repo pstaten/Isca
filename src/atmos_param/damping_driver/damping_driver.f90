@@ -101,7 +101,9 @@ module damping_driver_mod
                id_tdt_diss_gwd,    id_diss_heat_gwd
     
     integer :: id_udt_topo,   id_vdt_topo,   id_taubx,  id_tauby
-    
+
+    integer :: id_udt_qbo,    id_tdt_ewa
+
     !----- missing value for all fields ------
     
     real :: missing_value = -999.
@@ -332,16 +334,30 @@ module damping_driver_mod
          nlon = size(pfull,1)
          nlat = size(pfull,2)
          nlev = size(pfull,3)
-         call get_time(length_of_year(),seconds,daysperyear) 
+         call get_time(length_of_year(),seconds,daysperyear)
          call get_time(Time,seconds,days)
-         call fake_qbo(pfull, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)    
+         call fake_qbo(pfull, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)
          udt = udt + utnd
+
+!----- diagnostics -----
+
+         if ( id_udt_qbo > 0 ) then
+            used = send_data ( id_udt_qbo, utnd, Time, rmask=mask )
+         endif
+
        end if
 
        ! -------call for the use of do_ewa_htg -----------------
     if (do_ewa_htg) then
-      call ewa_heating(lat,pfull, ttnd)    
+      call ewa_heating(lat,pfull, ttnd)
       tdt = tdt + ttnd
+
+!----- diagnostics -----
+
+      if ( id_tdt_ewa > 0 ) then
+         used = send_data ( id_tdt_ewa, ttnd, Time, rmask=mask )
+      endif
+
     end if
     ! ---------------------------
 
@@ -552,14 +568,30 @@ module damping_driver_mod
        endif
     
        if (do_const_drag) then
-    
+
         id_udt_cnstd = &
         register_diag_field ( mod_name, 'udt_cnstd', axes(1:3), Time,        &
                      'u wind tendency for constant drag', 'm/s2', &
                           missing_value=missing_value               )
        endif
-          
-    
+
+       if (do_sin_qbo) then
+
+        id_udt_qbo = &
+        register_diag_field ( mod_name, 'udt_qbo', axes(1:3), Time,        &
+                     'u wind tendency from QBO forcing', 'm/s2', &
+                          missing_value=missing_value               )
+       endif
+
+       if (do_ewa_htg) then
+
+        id_tdt_ewa = &
+        register_diag_field ( mod_name, 'tdt_ewa', axes(1:3), Time,        &
+                     'temperature tendency from EWA heating', 'K/s', &
+                          missing_value=missing_value               )
+       endif
+
+
     !-----------------------------------------------------------------------
     !----- topo wave drag -----
     

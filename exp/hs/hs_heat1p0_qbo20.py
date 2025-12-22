@@ -63,6 +63,10 @@ diag.add_field('dynamics', 'pres_half', time_avg=True)
 diag.add_field('hs_forcing', 'teq', time_avg=True)
 diag.add_field('hs_forcing', 'tdt_ndamp', time_avg=True)
 
+# === HS forcing diagnostics (QBO and EWA heating) ===
+diag.add_field('hs_forcing', 'udt_qbo', time_avg=True)
+diag.add_field('hs_forcing', 'tdt_ewa', time_avg=True)
+
 # === Spectral truncation info (static fields) ===
 diag.add_field('dynamics', 'bk')
 diag.add_field('dynamics', 'pk')
