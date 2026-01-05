@@ -83,7 +83,7 @@ diag.add_field('atmosphere', 'rh', time_avg=True)
 
 # === HS forcing diagnostics ===
 diag.add_field('hs_forcing', 'teq', time_avg=True)
-diag.add_field('hs_forcing', 'tdt_ndamp', time_avg=True
+diag.add_field('hs_forcing', 'tdt_ndamp', time_avg=True)
 
 # === Damping driver diagnostics (QBO and EWA heating) ===
 diag.add_field('damping', 'udt_qbo', time_avg=True)
