@@ -712,21 +712,31 @@ module damping_driver_mod
       real, dimension(:,:,:),intent(in)    :: p_full
       real, dimension(:,:,:),intent(inout) :: ttnd
       ! local variables
-      integer :: i,j,k
+      integer :: i,j,k,nlon,nlat,nlev
       real    :: p_factor,lat_factor
+      real    :: analytical_int, numerical_int, normalization
+      real    :: dlat, dp, pi
+      real, dimension(:), allocatable :: dlat_all, dp_all
+      real, dimension(:), allocatable :: lat_1d, p_1d
 
       ! This is an implimentation of the heating profile specified in Ewa Bednarz' work.
       ! Q(\textup{lat}, p)=Q_{max} \cdot \exp{\left [-\left ( \frac{\textup{lat}^2}{2\times0.4^2} +\frac{(p/p_s-50/p_s)^2}{2\times0.0175^2}\right )\right ]}
       ! where Q_{max}=1/8640 K/s (that's 10 K per day, which is big)
       ! and p_s=1000 hPa
+      !
+      ! The heating is normalized so that the total integrated heating equals the analytical integral:
+      ! 2π Q_max |σ_φ σ_p p_s|
 
+      pi = acos(-1.0)
+      nlon = size(p_full,1)
+      nlat = size(lat,2)
+      nlev = size(p_full,3)
 
-
-
+      ! Compute unnormalized heating first
       ttnd = 0.
-      do k = 1,size(p_full,3)
-        do j = 1,size(lat,2)
-          do i = 1,size(lat,1)
+      do k = 1,nlev
+        do j = 1,nlat
+          do i = 1,nlon
             ! vertical component
             p_factor = exp( -(p_full(i,j,k)/p_s-p_center/p_s)**2/(2*p_width**2))
 
@@ -738,7 +748,68 @@ module damping_driver_mod
           enddo
         enddo
       enddo
-  
+
+      ! Compute analytical integral: 2π Q_max |σ_φ σ_p p_s|
+      analytical_int = 2.0 * pi * h_amp * abs(lat_width * p_width * p_s)
+
+      ! Compute numerical integral on the grid
+      ! Extract 1D latitude and pressure arrays (assuming uniform in lon)
+      allocate(lat_1d(nlat))
+      allocate(p_1d(nlev))
+      do j = 1,nlat
+        lat_1d(j) = lat(1,j)
+      enddo
+      do k = 1,nlev
+        p_1d(k) = p_full(1,1,k)
+      enddo
+
+      ! Compute grid cell widths for latitude
+      allocate(dlat_all(nlat))
+      if (nlat > 1) then
+        do j = 1,nlat
+          if (j == 1) then
+            dlat_all(j) = lat_1d(2) - lat_1d(1)
+          else if (j == nlat) then
+            dlat_all(j) = lat_1d(nlat) - lat_1d(nlat-1)
+          else
+            dlat_all(j) = (lat_1d(j+1) - lat_1d(j-1)) / 2.0
+          endif
+        enddo
+      else
+        dlat_all(1) = pi
+      endif
+
+      ! Compute grid cell widths for pressure
+      allocate(dp_all(nlev))
+      if (nlev > 1) then
+        do k = 1,nlev
+          if (k == 1) then
+            dp_all(k) = abs(p_1d(2) - p_1d(1))
+          else if (k == nlev) then
+            dp_all(k) = abs(p_1d(nlev) - p_1d(nlev-1))
+          else
+            dp_all(k) = abs(p_1d(k+1) - p_1d(k-1)) / 2.0
+          endif
+        enddo
+      else
+        dp_all(1) = p_1d(1)
+      endif
+
+      ! Sum heating * dlat * dp (only need to integrate over one longitude)
+      numerical_int = 0.0
+      do k = 1,nlev
+        do j = 1,nlat
+          numerical_int = numerical_int + ttnd(1,j,k) * dlat_all(j) * dp_all(k)
+        enddo
+      enddo
+
+      ! Compute normalization factor and apply it
+      normalization = analytical_int / numerical_int
+      ttnd = ttnd * normalization
+
+      ! Clean up
+      deallocate(lat_1d, p_1d, dlat_all, dp_all)
+
      end subroutine ewa_heating
 
     

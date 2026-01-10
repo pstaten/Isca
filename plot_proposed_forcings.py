@@ -62,6 +62,83 @@ def compute_ewa_heating(lat, p_full, h_amp, p_s, p_center, p_width, lat_center, 
 
     return ttnd_per_day
 
+def analytical_integral(h_amp, lat_width, p_width, p_s):
+    """
+    Compute the analytical integral of the heating forcing.
+
+    The definite integral (from -infinity to infinity in both lat and p dimensions) is:
+    2π Q_max |σ_φ σ_p p_s|
+
+    Parameters
+    ----------
+    h_amp : float
+        Heating amplitude (K/s)
+    lat_width : float
+        Latitude width parameter (radians)
+    p_width : float
+        Pressure width parameter (dimensionless)
+    p_s : float
+        Surface pressure (Pa)
+
+    Returns
+    -------
+    float
+        Analytical integral (K Pa rad / s)
+    """
+    return 2.0 * np.pi * h_amp * np.abs(lat_width * p_width * p_s)
+
+def numerical_integral(heating_per_sec, lat, p_full):
+    """
+    Compute the numerical integral of the heating on the discretized grid.
+
+    Parameters
+    ----------
+    heating_per_sec : ndarray (nlat, nlev)
+        Heating rate in K/s
+    lat : ndarray (nlat,)
+        Latitude in radians
+    p_full : ndarray (nlev,)
+        Pressure levels in Pa
+
+    Returns
+    -------
+    float
+        Numerical integral (K Pa rad / s)
+    """
+    nlat = len(lat)
+    nlev = len(p_full)
+
+    # Compute grid cell centers and widths
+    # For latitude: use cell-centered approach
+    if nlat > 1:
+        dlat = np.diff(lat)
+        # Extend to get width for all cells
+        dlat_all = np.zeros(nlat)
+        dlat_all[0] = dlat[0]
+        dlat_all[1:-1] = (dlat[:-1] + dlat[1:]) / 2.0
+        dlat_all[-1] = dlat[-1]
+    else:
+        dlat_all = np.array([np.pi])  # Full sphere
+
+    # For pressure: use cell-centered approach
+    if nlev > 1:
+        dp = np.abs(np.diff(p_full))  # Absolute difference
+        # Extend to get width for all cells
+        dp_all = np.zeros(nlev)
+        dp_all[0] = dp[0]
+        dp_all[1:-1] = (dp[:-1] + dp[1:]) / 2.0
+        dp_all[-1] = dp[-1]
+    else:
+        dp_all = np.array([p_full[0]])
+
+    # Sum heating * dlat * dp
+    total = 0.0
+    for j in range(nlat):
+        for k in range(nlev):
+            total += heating_per_sec[j, k] * dlat_all[j] * dp_all[k]
+
+    return total
+
 def create_pressure_height_grid(num_levels=50, scale_heights=6.0, surf_res=0.1, exponent=2.5):
     """
     Create pressure and height grids matching the model configuration.
@@ -133,6 +210,18 @@ def main():
         (-60, 50),
         (60, 70),
         (-60, 70),
+        (75, 30),
+        (-75, 30),
+        (75, 50),
+        (-75, 50),
+        (75, 70),
+        (-75, 70),
+        (90, 30),
+        (-90, 30),
+        (90, 50),
+        (-90, 50),
+        (90, 70),
+        (-90, 70),
     ]
 
     # Create grids
@@ -169,14 +258,35 @@ def main():
     # Use a set of distinct colors
     colors = plt.cm.tab20(np.linspace(0, 1, 20))
 
+    # Compute analytical integral (same for all positions)
+    analytical_int = analytical_integral(h_amp, lat_width, p_width, p_s)
+    print(f"Analytical integral: {analytical_int:.6e} K Pa rad / s")
+    print("\nNormalization factors for each position:")
+
     # Plot contours for each position
     for i, (lat_center_deg, p_center_hPa) in enumerate(positions):
         lat_center_rad = np.radians(lat_center_deg)
         p_center = p_center_hPa * 100.0  # Convert to Pa
 
-        # Compute heating
-        heating = compute_ewa_heating(lat, p_full, h_amp, p_s, p_center,
-                                      p_width, lat_center_rad, lat_width)
+        # Compute heating (in K/day)
+        heating_per_day = compute_ewa_heating(lat, p_full, h_amp, p_s, p_center,
+                                              p_width, lat_center_rad, lat_width)
+
+        # Convert to K/s for integration
+        heating_per_sec = heating_per_day / 86400.0
+
+        # Compute numerical integral
+        numerical_int = numerical_integral(heating_per_sec, lat, p_full)
+
+        # Compute normalization factor
+        normalization = analytical_int / numerical_int
+
+        # Print normalization info
+        print(f"  Position ({lat_center_deg:+4.0f}°, {p_center_hPa:3.0f} hPa): "
+              f"numerical_int = {numerical_int:.6e}, normalization = {normalization:.4f}")
+
+        # Apply normalization to heating (in K/day)
+        heating = heating_per_day * normalization
 
         # Pad heating array
         heating_padded = np.zeros((nlat, num_levels + 2))
@@ -209,7 +319,7 @@ def main():
     ax.set_yticklabels(['100', '10'])
     ax.set_xlabel('Latitude')
     ax.set_ylabel('Pressure (hPa)')
-    ax.set_title('Proposed Heating Forcing Positions (0.075 K/day contour)')
+    ax.set_title('Proposed Heating Forcing Positions (normalized, 0.75× max contour)')
     ax.grid(True, alpha=0.3, which='both')
 
     # Add legend
