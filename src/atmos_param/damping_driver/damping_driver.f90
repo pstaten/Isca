@@ -63,18 +63,21 @@ module damping_driver_mod
        real     :: p_center = 5000.      ! Pascals
        real     :: p_width = 0.0175      ! Pascals
        real     :: lat_width = 0.4       ! Radians
+       real     :: lat_center = 0.0      ! Radians (heating center latitude)
+       logical  :: both_hemispheres = .false.  ! Apply heating symmetrically in both hemispheres
 
     ! namelist parameters for fake_qbo
        real     :: qbo_amp = 20.               ! m/s
 
-    
+
        namelist /damping_driver_nml/  trayfric,  &
                                       do_rayleigh, sponge_pbottom,  & ! mj
                                       do_cg_drag, do_topo_drag, &
                                       do_mg_drag, do_conserve_energy, &
                                       do_const_drag, const_drag_amp,const_drag_off, &
                                       do_sin_qbo, do_ewa_htg, &
-                                      h_amp, p_s, p_center, p_width, lat_width, qbo_amp
+                                      h_amp, p_s, p_center, p_width, lat_width, lat_center, &
+                                      both_hemispheres, qbo_amp
                                           !mj
     
     !
@@ -740,8 +743,14 @@ module damping_driver_mod
             ! vertical component
             p_factor = exp( -(p_full(i,j,k)/p_s-p_center/p_s)**2/(2*p_width**2))
 
-            ! latitudinal component
-            lat_factor = exp( -(lat(i,j))**2/(2*(lat_width)**2) )
+            ! latitudinal component (centered at lat_center)
+            if (both_hemispheres) then
+              ! Apply heating symmetrically in both hemispheres
+              lat_factor = exp( -(abs(lat(i,j))-abs(lat_center))**2/(2*(lat_width)**2) )
+            else
+              ! Apply heating in one hemisphere only
+              lat_factor = exp( -(lat(i,j)-lat_center)**2/(2*(lat_width)**2) )
+            endif
 
             ! everything together
             ttnd(i,j,k) = h_amp*p_factor*lat_factor
