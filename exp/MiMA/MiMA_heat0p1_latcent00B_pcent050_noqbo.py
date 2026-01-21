@@ -182,7 +182,7 @@ exp.namelist = namelist = Namelist({
         'h_amp':0.1/86400.,
         'p_center':5000.0,
         'lat_center':0.000000,
-        'both_hemispheres':.true.,
+        'both_hemispheres':True,
     },
 
     'qflux_nml': {
