@@ -88,6 +88,11 @@ diag.add_field('hs_forcing', 'tdt_ndamp', time_avg=True)
 # === Damping driver diagnostics (QBO and EWA heating) ===
 diag.add_field('damping', 'tdt_ewa', time_avg=True)
 
+# === Radiative heating rates ===
+diag.add_field('rrtm_radiation', 'tdt_rad', time_avg=True)   # Total radiative heating
+diag.add_field('rrtm_radiation', 'tdt_sw', time_avg=True)    # Shortwave heating
+diag.add_field('rrtm_radiation', 'tdt_lw', time_avg=True)    # Longwave heating/cooling
+
 # === Spectral truncation info (static fields) ===
 diag.add_field('dynamics', 'bk')
 diag.add_field('dynamics', 'pk')

@@ -89,6 +89,11 @@ diag.add_field('hs_forcing', 'tdt_ndamp', time_avg=True)
 diag.add_field('dynamics', 'bk')
 diag.add_field('dynamics', 'pk')
 
+# === Radiative heating rates ===
+diag.add_field('rrtm_radiation', 'tdt_rad', time_avg=True)   # Total radiative heating
+diag.add_field('rrtm_radiation', 'tdt_sw', time_avg=True)    # Shortwave heating
+diag.add_field('rrtm_radiation', 'tdt_lw', time_avg=True)    # Longwave heating/cooling
+
 exp.diag_table = diag
 
 
