@@ -105,7 +105,14 @@ Runs execute on **BigRed200** (Cray EX; conda OpenMPI + `srun`). Env vars (user'
 - `GFDL_WORK=/N/scratch/pwstaten/isca_work_bigred` — build + transient run scratch.
   ⚠️ **scratch AUTO-PURGES unaccessed files** — the build dir (incl. the `mppnccombine.x`
   symlink) vanishes while away. This is the root of the recurring failure (see below).
-- `GFDL_DATA=/N/project/pfec_staten/isca_data` — model output (on **project**; does NOT purge)
+- `GFDL_DATA=/N/scratch/pwstaten/isca_data` — model output. **Moved to scratch 2026-07-07**
+  (from `/N/project/pfec_staten/isca_data`) to avoid project-quota fill while running. ⚠️ scratch
+  **auto-purges after 30 days**, so now OUTPUT *and* RESTARTS purge → must post-process/archive
+  each experiment within 30 days, and don't leave a run paused >30 days or its restarts vanish
+  (→ "restart not found"). Post-processing workflow improvement is a tracked TODO.
+  ⚠️ **Migration note:** the existing production runs (~1000 segments each) still live in the OLD
+  project dir `/N/project/pfec_staten/isca_data`; the new scratch `GFDL_DATA` started EMPTY.
+  **Move the old `mima_*` dirs to scratch before resuming**, else every experiment restarts from run 1.
 - conda env `isca_env`. SLURM: account `r00132`, partitions `general` (48 h) / `debug` (1 h),
   1 node × 4 tasks × 32 cpus.
 
@@ -148,9 +155,11 @@ The MiMA no-QBO sweep got **stuck at a different segment for each experiment** (
 5. **Every resubmit since** skips the empty `run{N}` (overwrite_data=False) and asks for `res{N}`
    → `IOError: Restart file not found` → dies in seconds, zero progress. That is the "stuck" loop.
 
-(An *earlier*, since-fixed failure ~Jan 30 was `Disk quota exceeded` at run ~534 — the old
-"~530–584" cluster. Quota was raised to 120 TB. **But `/N/project` is now ~96% full (~5 TB
-free), `pfec_staten` ~95%** — watch space when finishing the sweep.)
+(An *earlier* failure ~Jan 30 was a genuinely different cause: `Disk quota exceeded` writing
+`atmos_monthly.nc` at run ~534 — the old "~530–584" crash cluster, when `GFDL_DATA` was on the
+near-full `/N/project` (pfec_staten ~95%). **Addressed 2026-07-07 by moving `GFDL_DATA` to scratch**
+(~100 TB). Note this only fixes the *quota* mode; the mppnccombine-127 mode above is independent —
+it's the build dir purging on scratch, still needs the recompile + `cb.compile()` fix.)
 
 **Fix (as of 2026-07-06, plan; confirm before destructive steps):**
 1. **Recompile once** → rebuilds `isca.x` and restores the `mppnccombine.x` symlink.
