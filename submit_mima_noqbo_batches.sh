@@ -117,6 +117,12 @@ EOF_HEADER
 source ~/.bashrc
 conda activate isca_env
 
+# Compile the codebase ONCE before launching the parallel runs. This self-heals a
+# scratch-purged build (rebuilds isca.x and restores the mppnccombine.x symlink) and
+# avoids the parallel runs racing on the shared build dir. Abort the job if it fails.
+echo "compiling codebase before runs..."
+python -c "from isca import IscaCodeBase, GFDL_BASE; cb=IscaCodeBase.from_directory(GFDL_BASE); cb.compile()" || { echo "COMPILE FAILED - aborting"; exit 1; }
+
 # Launch scripts in parallel
 EOF_ENV
 
