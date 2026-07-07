@@ -27,6 +27,15 @@ else
   echo "codebase build present - skipping compile"
 fi
 
+# Clear any empty run dirs left by a prior wall-clock kill during the ~seconds-long
+# combine window. Otherwise resume skips the empty run{N} and dies on the missing
+# res{N} ("restart not found"). rmdir only removes EMPTY dirs, so real output is safe.
+# Scoped to THIS job's experiments only, so it can't touch another running batch's
+# momentarily-empty in-progress run dir.
+for e in mima_heat0p0_qbo00 mima_heat0p0_qbo20 mima_heat0p1_qbo00 mima_heat0p1_qbo20; do
+  find "$GFDL_DATA/$e" -mindepth 1 -maxdepth 1 -type d -name 'run*' -empty -exec rmdir {} \; 2>/dev/null
+done
+
 # Launch scripts in parallel
 srun -n1 --cpus-per-task=32 python /N/slate/pwstaten/Projects/Isca/exp/MiMA/MiMA_heat0p0_qbo00.py &
 srun -n1 --cpus-per-task=32 python /N/slate/pwstaten/Projects/Isca/exp/MiMA/MiMA_heat0p0_qbo20.py &

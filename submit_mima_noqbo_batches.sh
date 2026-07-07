@@ -143,7 +143,13 @@ EOF_ENV
 
     for ((i=start_idx; i<end_idx; i++)); do
         exp_name="${unfinished_experiments[$i]}"
+        exp_dir_name=$(echo "$exp_name" | tr '[:upper:]' '[:lower:]')
         echo "  - $exp_name"
+        # Clear any empty run dir left by a prior wall-clock kill during the combine
+        # window (else resume skips it and dies on the missing restart). rmdir only
+        # removes EMPTY dirs; scoped to this experiment so it can't touch a concurrently
+        # running batch's in-progress run dir.
+        echo "find \$GFDL_DATA/${exp_dir_name} -mindepth 1 -maxdepth 1 -type d -name 'run*' -empty -exec rmdir {} \\; 2>/dev/null" >> "$batch_script"
         echo "srun -n1 --cpus-per-task=32 python $EXP_DIR/${exp_name}.py &" >> "$batch_script"
     done
 
