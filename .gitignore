@@ -113,3 +113,7 @@ ENV/
 
 # mkdocs documentation
 /site
+
+# generated forcing-visualization figures (plot_*_forcings.py, per-experiment)
+*_forcings.png
+*_forcings.pdf
