@@ -15,11 +15,17 @@
 source ~/.bashrc
 conda activate isca_env
 
-# Compile the codebase ONCE before launching the parallel runs. This self-heals a
-# scratch-purged build (rebuilds isca.x and restores the mppnccombine.x symlink) and
-# avoids the 4 parallel runs racing on the shared build dir. Abort the job if it fails.
-echo "compiling codebase before runs..."
-python -c "from isca import IscaCodeBase, GFDL_BASE; cb=IscaCodeBase.from_directory(GFDL_BASE); cb.compile()" || { echo "COMPILE FAILED - aborting"; exit 1; }
+# Compile the codebase before launching, but ONLY if the build is missing. This
+# self-heals a scratch-purged build (rebuilds isca.x + restores the mppnccombine.x
+# symlink). Guarding on presence means jobs skip compiling when a good build already
+# exists, so parallel jobs don't race on the shared build dir.
+BUILD=$(ls -d $GFDL_WORK/codebase/*/build/isca 2>/dev/null | head -1)
+if [ -z "$BUILD" ] || [ ! -e "$BUILD/isca.x" ] || [ ! -e "$BUILD/mppnccombine.x" ]; then
+  echo "codebase build missing - compiling..."
+  python -c "from isca import IscaCodeBase, GFDL_BASE; cb=IscaCodeBase.from_directory(GFDL_BASE); cb.compile()" || { echo "COMPILE FAILED - aborting"; exit 1; }
+else
+  echo "codebase build present - skipping compile"
+fi
 
 # Launch scripts in parallel
 srun -n1 --cpus-per-task=32 python /N/slate/pwstaten/Projects/Isca/exp/MiMA/MiMA_heat0p0_qbo00.py &
