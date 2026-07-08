@@ -36,6 +36,13 @@ purpose**: this is a fork of upstream Isca and stays clean for upstream reconcil
 analysis repo carries the large notebooks/figures/data products. A symlink between them is *not*
 committed here (gitignored) — they're managed as sibling directories on both machines.
 
+**Launch convention: start Claude sessions from this Isca directory** (`~/Projects/Isca`). The
+agent's persistent memory and per-project settings/permissions are keyed to the launch directory,
+and Isca is the home for all the accumulated project context (runs, BigRed access, debugging
+history). From an Isca-launched session the sibling analysis repo is still fully editable via
+absolute paths — so you lose nothing. Don't bounce between launch dirs; that splits the memory
+store into two namespaces.
+
 ---
 
 ## Scientific goal & experimental design
