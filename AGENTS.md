@@ -227,6 +227,14 @@ Typical analysis: `qbo20 − qbo00` for the QBO impact (per SAI-heating config);
 complete 28-month QBO cycles for the nonlinear/rectified impact. Forcing-visualization scripts
 (run locally): `plot_proposed_forcings.py`, `plot_imposed_forcings.py` → PNG/PDF (gitignored).
 
+**Repairing bad/missing months:** occasionally a `run<NNN>/atmos_monthly.nc` is missing/truncated/
+non-conforming (segment killed mid-combine) and breaks the analysis `ncrcat`. The sibling repo's
+`validate_model_output.py` flags them (emits a worklist); **`rerun_months.py`** (this repo) consumes
+the worklist and re-runs just those months via `exp.run(N, overwrite_data=True)` off `res(N-1)`. It
+rebuilds each `exp` by exec'ing its exp script with `run()`/`clear_rundir()` neutralized (no
+side effects). Dry-run by default; `--apply` in a SLURM job, guarded against actively-running
+experiments. See the sibling `AGENTS.md` "Validate & repair" for the full loop.
+
 ---
 
 ## Git sync — keep both checkouts + GitHub in step
