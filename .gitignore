@@ -120,3 +120,8 @@ ENV/
 
 # convenience symlink to the sibling analysis repo (managed as a separate repo, never committed here)
 idealized_qbo_sai_analysis
+
+# operational job artifacts (generated on the cluster, not source)
+auto_resubmit_*.txt
+auto_resubmit_*.err
+run_mima_noqbo_batch*.sh
