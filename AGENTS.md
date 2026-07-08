@@ -161,6 +161,14 @@ whose `run{i}` dir already exists, then runs the first missing one, loading rest
 runs by checking for `run1428`, batches of 4). `cleanup_last_runs.sh` deletes the highest
 `run*` per exp — **use with care** (see below), it does not check whether that run is complete.
 
+**Auto-resubmit (no babysitting the 48 h boundary):** `auto_resubmit_controller.sh` is a
+self-rescheduling SLURM job (name `auto_resubmit`) that wakes ~hourly and, when no run-jobs are
+queued, resubmits anything below `run1428` via the launchers above, then reschedules itself
+(`sbatch --begin=now+1h`). It stops when all reach 1428, or when nothing advanced since the last
+resubmit (anti-storm guard for a permanently-stuck exp). Kick off once: `sbatch
+auto_resubmit_controller.sh`; stop by `scancel`-ing the pending `auto_resubmit` job. State/log in
+`$HOME/.isca_autoresubmit_state` / `$HOME/isca_autoresubmit.log`.
+
 **SSH access for agents** (BigRed200 needs Duo, so no headless login): user opens a
 multiplexed master in a real terminal —
 `ssh -M -S ~/.ssh/cm-bigred -o ControlPersist=8h -o IdentitiesOnly=yes bigred200` — then the
