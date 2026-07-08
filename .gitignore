@@ -117,3 +117,6 @@ ENV/
 # generated forcing-visualization figures (plot_*_forcings.py, per-experiment)
 *_forcings.png
 *_forcings.pdf
+
+# convenience symlink to the sibling analysis repo (managed as a separate repo, never committed here)
+idealized_qbo_sai_analysis

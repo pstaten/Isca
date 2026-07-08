@@ -12,6 +12,32 @@ and **Ewa Bednarz**.
 
 ---
 
+## Sibling repo — analysis (read this too)
+
+This repo (the model fork + the runs) has a sibling repo that holds the **post-processing,
+diagnostics, and figure code** consuming this model's output. The two are worked on together in
+one project; they share the science goal, experiment-naming convention, and git-sync discipline —
+only the division of labor differs. Keep the two `AGENTS.md` files consistent.
+
+| | This repo | Sibling |
+|---|---|---|
+| **Path (MacBook)** | `/Users/pwstaten/Projects/Isca` | `/Users/pwstaten/Projects/idealized_qbo_sai_analysis` |
+| **Path (BigRed slate)** | `/N/slate/pwstaten/Projects/Isca` | `/N/slate/pwstaten/Projects/idealized_qbo_sai_analysis` |
+| **Remote** | `git@github.com:pstaten/Isca.git` | `git@github.com:pstaten/idealized_qbo_sai_analysis.git` |
+| **Default branch** | `master` | `main` |
+| **Purpose** | the GCM fork: model source, forcing physics, running/debugging runs on BigRed200 | post-processing, diagnostics, figures (Python + NCO) |
+| **Session entry point** | this file | `idealized_qbo_sai_analysis/AGENTS.md` |
+
+The imposed forcings (`fake_qbo`, `ewa_heating`), the experiment names, and the raw output layout
+are defined **here** — this side is authoritative for naming/physics. The analysis side turns the
+raw per-run output into concatenated zonal-mean files (`process_model_output.sh`: `ncwa` → `ncrcat`
+→ post-process → `ncdiff`) and computes the science contrasts. The repos are **kept separate on
+purpose**: this is a fork of upstream Isca and stays clean for upstream reconciliation; the
+analysis repo carries the large notebooks/figures/data products. A symlink between them is *not*
+committed here (gitignored) — they're managed as sibling directories on both machines.
+
+---
+
 ## Scientific goal & experimental design
 
 Run idealized GCM experiments **with and without an imposed QBO-like stratospheric zonal-wind
