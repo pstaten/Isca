@@ -245,6 +245,13 @@ def main():
         np.array([1.0])
     ])
 
+    # Native model-resolution latitude grid, for honest pixel rendering (pcolormesh) of the
+    # example footprints instead of smooth contours that overstate the grid resolution.
+    from matplotlib.colors import LinearSegmentedColormap
+    nlat_model = 64
+    lat_model_rad = np.linspace(-np.pi / 2, np.pi / 2, nlat_model)
+    lat_model_deg = np.degrees(lat_model_rad)
+
     # Create figure
     plt.rcParams.update({
         'font.size': 12,
@@ -256,9 +263,18 @@ def main():
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Define colormap for different positions
-    # Use a set of distinct colors
-    colors = plt.cm.tab20(np.linspace(0, 1, 20))
+    # Alternating black/gray contours per pressure row (instead of distinct colors).
+    # Rows are the pressure centers, ordered top->bottom (lowest pressure first). Within a
+    # row, both outermost (highest |lat|) contours take the row's base color and the color
+    # alternates moving inward toward the equator, so the pattern is symmetric about the
+    # equator. The base (outermost) color alternates by row: black, gray, black, ...
+    GREEN = (41/255, 94/255, 17/255)    # rgb(41,94,17)
+    PURPLE = (88/255, 9/255, 79/255)    # rgb(88,9,79)
+    GRAY = (0.22, 0.22, 0.22)           # ~same lightness as GREEN, to start
+
+    # Only these example cases get a shaded footprint and a colored dot; every other center is
+    # just a black dot. Maps position (lat_deg, p_hPa) -> shade color.
+    HIGHLIGHT_COLOR = {(-90, 30): GREEN, (0, 50): PURPLE, (60, 70): GRAY}
 
     # Compute analytical integral (same for all positions)
     analytical_int = analytical_integral(h_amp, lat_width, p_width, p_s)
@@ -294,17 +310,31 @@ def main():
         heating_padded = np.zeros((nlat, num_levels + 2))
         heating_padded[:, 1:-1] = heating
 
-        # Choose contour level (e.g., 50% of maximum)
-        max_heating = np.max(heating)
-        contour_level = 0.75 * max_heating
+        # Five contour levels per patch, from 0.75x max (widest) to 0.90x max (smallest,
+        # near the Gaussian center). Each level is drawn as a translucent filled region
+        # (value >= level) plus a thin outline. The five fills nest and stack, so the middle
+        # of each Gaussian is darker where all five overlap.
+        pos = (lat_center_deg, p_center_hPa)
 
-        # Plot single contour
-        color_idx = i % len(colors)
-        cs = ax.contour(lat_deg, p_extended_hPa, heating_padded.T,
-                       levels=[contour_level],
-                       colors=[colors[color_idx]],
-                       linewidths=1.5,
-                       alpha=0.8)
+        # Example cases get a footprint at the model's NATIVE grid resolution (pcolormesh
+        # pixels) so the coarseness is honest -- no smoothing implied -- and a colored dot.
+        if pos in HIGHLIGHT_COLOR:
+            color = HIGHLIGHT_COLOR[pos]
+            heat_native = compute_ewa_heating(lat_model_rad, p_full, h_amp, p_s, p_center,
+                                              p_width, lat_center_rad, lat_width)
+            cmap = LinearSegmentedColormap.from_list(
+                'shade', [(color[0], color[1], color[2], 0.0),
+                          (color[0], color[1], color[2], 0.85)])
+            ax.pcolormesh(lat_model_deg, p_hPa, heat_native.T,
+                          cmap=cmap, vmin=0.0, vmax=np.max(heat_native),
+                          shading='nearest', zorder=1)
+            dot_color = color
+        else:
+            dot_color = 'black'
+
+        # Center dot (drawn on top of any footprint).
+        ax.plot(lat_center_deg, p_center_hPa, marker='o', color=dot_color,
+                markersize=4, alpha=0.9, zorder=3)
 
         # Add label for this position
         label = f'{lat_center_deg:+.0f}°, {p_center_hPa:.0f} hPa'
@@ -321,12 +351,8 @@ def main():
     ax.set_yticklabels(['100', '10'])
     ax.set_xlabel('Latitude')
     ax.set_ylabel('Pressure (hPa)')
-    ax.set_title('Proposed Heating Forcing Positions (normalized, 0.75× max contour)')
+    ax.set_title('SAI Heating Locations (centers; example footprints at model resolution)')
     ax.grid(True, alpha=0.3, which='both')
-
-    # Add legend
-    # Split legend into multiple columns to fit
-    ax.legend(loc='upper left', ncol=2, fontsize=8, framealpha=0.9)
 
     plt.tight_layout()
 
