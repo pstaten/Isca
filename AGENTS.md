@@ -233,7 +233,9 @@ script) by group:
 
 Typical analysis: `qbo20 − qbo00` for the QBO impact (per SAI-heating config); time-mean over
 complete 28-month QBO cycles for the nonlinear/rectified impact. Forcing-visualization scripts
-(run locally): `plot_proposed_forcings.py`, `plot_imposed_forcings.py` → PNG/PDF (gitignored).
+(run locally): `plot_heating_location_grid.py` (sweep-wide map of SAI heating locations) and
+`plot_imposed_qbo_and_heating.py` (one run config's imposed QBO wind + SAI heating structure,
+from its namelist) → PNG/PDF (gitignored).
 
 **Repairing bad/missing months:** occasionally a `run<NNN>/atmos_monthly.nc` is missing/truncated/
 non-conforming (segment killed mid-combine) and breaks the analysis `ncrcat`. The sibling repo's

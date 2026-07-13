@@ -114,9 +114,11 @@ ENV/
 # mkdocs documentation
 /site
 
-# generated forcing-visualization figures (plot_*_forcings.py, per-experiment)
+# generated forcing-visualization figures
 *_forcings.png
 *_forcings.pdf
+plot_heating_location_grid.png
+plot_heating_location_grid.pdf
 
 # convenience symlink to the sibling analysis repo (managed as a separate repo, never committed here)
 idealized_qbo_sai_analysis

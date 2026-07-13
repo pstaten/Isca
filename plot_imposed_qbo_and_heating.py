@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Plot imposed forcings from damping_driver.f90
+Plot the imposed QBO-like wind and SAI-like heating STRUCTURE for one run config.
 
-This script reads a namelist configuration file and plots the structure of
-the ewa_heating and fake_qbo forcings.
+Reads a run's namelist (&damping_driver_nml) and plots, in several panels, the structure of
+that config's imposed forcings: the fake_qbo descending-wind pattern and the ewa_heating
+(Bednarz-profile) SAI-like heating. Use this to verify what a single experiment actually forces.
+For the sweep-wide MAP of heating locations, see plot_heating_location_grid.py instead.
 """
 
 import sys

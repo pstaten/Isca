@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Plot proposed heating forcings at multiple latitudes and pressure levels.
+Plot the GRID of SAI-like heating locations across the experiment sweep.
 
-This script plots contours of the ewa_heating forcing centered at various
-combinations of latitude and pressure level.
+Draws one contour (0.75x max) of the ewa_heating (Bednarz-profile) forcing for each
+(lat_center, p_center) combination in the sweep, all overlaid on a single latitude-pressure
+plane -- i.e. a map of WHERE heating is applied across the experiments. For the QBO + heating
+STRUCTURE of a single run's namelist, see plot_imposed_qbo_and_heating.py instead.
 """
 
 import numpy as np
@@ -329,7 +331,7 @@ def main():
     plt.tight_layout()
 
     # Save figure
-    output_name = 'plot_proposed_forcings'
+    output_name = 'plot_heating_location_grid'
     plt.savefig(output_name + '.png', dpi=300, bbox_inches='tight')
     plt.savefig(output_name + '.pdf', bbox_inches='tight')
     print(f"Saved plot to: {output_name}.png and {output_name}.pdf")
