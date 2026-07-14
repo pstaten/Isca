@@ -25,6 +25,7 @@ module damping_driver_mod
                                   open_namelist_file, error_mesg, &
                                   check_nml_error,                   &
                                   FATAL, close_file
+     use          mpp_mod, only:  mpp_sum
      use diag_manager_mod, only:  register_diag_field,  &
                                   register_static_field, send_data
      use time_manager_mod, only:  time_type,get_time,length_of_year !mj
@@ -804,15 +805,27 @@ module damping_driver_mod
         dp_all(1) = p_1d(1)
       endif
 
-      ! Sum heating * dlat * dp (only need to integrate over one longitude)
+      ! Integrate the heating over (latitude, pressure) with cos(lat) AREA weighting, so the
+      ! conserved quantity is the true area-weighted total energy -- i.e. the same total energy
+      ! for every experiment regardless of heating location (a fixed-angular-width Gaussian at
+      ! the pole covers less area than at the equator, so it gets a higher amplitude). Only one
+      ! longitude is needed since the heating is zonally symmetric.
+      !
+      ! CRITICAL: the model is decomposed across PEs in latitude, so each PE holds only a band of
+      ! latitudes and this loop is a LOCAL partial integral. We must mpp_sum it into the GLOBAL
+      ! integral before normalizing -- otherwise every PE rescales its local heating to the global
+      ! target, producing latitudinally-uniform, ~N_tile-times-too-strong heating. (This was a real
+      ! bug: the location sweep applied uniform, inflated heating in all experiments.)
       numerical_int = 0.0
       do k = 1,nlev
         do j = 1,nlat
-          numerical_int = numerical_int + ttnd(1,j,k) * dlat_all(j) * dp_all(k)
+          numerical_int = numerical_int + ttnd(1,j,k) * cos(lat_1d(j)) * dlat_all(j) * dp_all(k)
         enddo
       enddo
+      call mpp_sum(numerical_int)   ! global (all-PE) integral across the latitude decomposition
 
-      ! Compute normalization factor and apply it
+      ! Normalize so the global cos-weighted integral equals analytical_int (the same target for
+      ! every experiment -> same total energy), then apply.
       normalization = analytical_int / numerical_int
       ttnd = ttnd * normalization
 
