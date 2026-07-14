@@ -35,6 +35,8 @@ diag.add_field('dynamics', 'ucomp', time_avg=True)
 diag.add_field('dynamics', 'vcomp', time_avg=True)
 diag.add_field('dynamics', 'temp', time_avg=True)
 diag.add_field('dynamics', 'omega', time_avg=True)
+diag.add_field('dynamics', 'dt_tg_dynamics', time_avg=True)  # dynamical (adiabatic+advection) T tendency
+diag.add_field('damping', 'tdt_diss_rdamp', time_avg=True)  # Rayleigh/sponge dissipative heating
 diag.add_field('dynamics', 'height', time_avg=True)
 
 # === Eddy momentum fluxes (CRITICAL for EP flux!) ===
