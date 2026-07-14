@@ -107,6 +107,7 @@ character(len=128), parameter :: tagname = '$Name: siena_201211 $'
 integer :: id_ps, id_u, id_v, id_t, id_vor, id_div, id_omega, id_wspd, id_slp
 integer :: id_pres_full, id_pres_half, id_zfull, id_zhalf, id_vort_norm, id_EKE
 integer :: id_uu, id_vv, id_tt, id_omega_omega, id_uv, id_omega_t, id_vw, id_uw, id_ut, id_vt, id_v_vor, id_uz, id_vz, id_omega_z
+integer :: id_dt_tg_dyn   ! dynamical (adiabatic + advection) temperature tendency diagnostic
 integer, allocatable, dimension(:) :: id_tr, id_utr, id_vtr, id_wtr !extra advection diags added by RG
 real :: gamma, expf, expf_inverse
 character(len=8) :: mod_name = 'dynamics'
@@ -807,6 +808,8 @@ real   , dimension(is:ie, js:je, num_levels+1) :: phig_half, ln_p_half, wg
 
 real, dimension(is:ie, js:je                         ) :: dt_psg_tmp
 real, dimension(is:ie, js:je, num_levels             ) :: dt_ug_tmp, dt_vg_tmp, dt_tg_tmp
+real, dimension(is:ie, js:je, num_levels             ) :: dt_tg_phys   ! physics-only T tendency, for the dt_tg_dynamics diagnostic
+logical :: used
 real, dimension(is:ie, js:je, num_levels, num_tracers) :: dt_tracers_tmp
 
 integer :: j, k, time_level, seconds, days, p
@@ -846,6 +849,7 @@ dt_psg_tmp = dt_psg
 dt_ug_tmp  = dt_ug
 dt_vg_tmp  = dt_vg
 dt_tg_tmp  = dt_tg
+dt_tg_phys = dt_tg   ! physics tendency, saved before the dynamical (adiabatic+advection) terms are added below
 dt_tracers_tmp = dt_tracers
 
 call initialize_corrections(dt_ug, dt_vg, dt_tg, dt_tracers, delta_t)
@@ -888,6 +892,14 @@ call vert_advection(delta_t, wg, dp, tg(:,:,:,time_level),  dt_grid_tmp, scheme=
 dt_tg_tmp = dt_tg_tmp + dt_grid_tmp
 
 call horizontal_advection(ts(:,:,:,current), ug(:,:,:,current), vg(:,:,:,current), dt_tg_tmp)
+
+! Diagnostic: dynamical (adiabatic + vertical/horizontal advection) temperature tendency.
+! dt_tg_tmp now holds physics + dynamics; subtract the saved physics part to isolate dynamics.
+! Read-only -- does NOT modify dt_tg_tmp / dt_ts, so it cannot affect the integration. Misses
+! the small semi-implicit correction (applied later in spectral space) and spectral T-diffusion,
+! so the temperature budget closes to within those numerical terms.
+if(id_dt_tg_dyn > 0) used = send_data(id_dt_tg_dyn, dt_tg_tmp - dt_tg_phys, Time)
+
 call trans_grid_to_spherical(dt_tg_tmp, dt_ts)
 
 do k=1,num_levels
@@ -1609,6 +1621,10 @@ id_u   = register_diag_field(mod_name, &
 
 id_v   = register_diag_field(mod_name, &
       'vcomp',   axes_3d_full,       Time, 'meridional wind component',    'm/sec',      range=vrange)
+
+id_dt_tg_dyn = register_diag_field(mod_name, &
+      'dt_tg_dynamics', axes_3d_full, Time, &
+      'temperature tendency from dynamics (adiabatic + advection)', 'K/s')
 
 id_uu  = register_diag_field(mod_name, &
       'ucomp_sq',axes_3d_full,       Time, 'zonal wind squared',           '(m/sec)**2', range=(/0.,vrange(2)**2/))
