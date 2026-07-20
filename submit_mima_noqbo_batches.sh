@@ -145,11 +145,11 @@ EOF_ENV
         exp_name="${unfinished_experiments[$i]}"
         exp_dir_name=$(echo "$exp_name" | tr '[:upper:]' '[:lower:]')
         echo "  - $exp_name"
-        # Clear any empty run dir left by a prior wall-clock kill during the combine
-        # window (else resume skips it and dies on the missing restart). rmdir only
-        # removes EMPTY dirs; scoped to this experiment so it can't touch a concurrently
-        # running batch's in-progress run dir.
-        echo "find \$GFDL_DATA/${exp_dir_name} -mindepth 1 -maxdepth 1 -type d -name 'run*' -empty -exec rmdir {} \\; 2>/dev/null" >> "$batch_script"
+        # Clear any INCOMPLETE run dir (run{N} with no matching res{N}.tar.gz -- empty, 0-byte
+        # output, or full output but no restart; all poison that makes resume skip run{N} and die
+        # on the missing res{N}). Deleting lets resume re-run month N off the previous good
+        # restart. A run with a matching restart is never touched; scoped to this experiment.
+        echo "for rd in \$GFDL_DATA/${exp_dir_name}/run[0-9]*; do [ -d \"\$rd\" ] || continue; n=\$(basename \"\$rd\"); n=\${n#run}; [ -f \"\$GFDL_DATA/${exp_dir_name}/restarts/res\${n}.tar.gz\" ] || rm -rf \"\$rd\"; done" >> "$batch_script"
         echo "srun -n1 --cpus-per-task=32 python $EXP_DIR/${exp_name}.py &" >> "$batch_script"
     done
 

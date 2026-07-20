@@ -27,12 +27,16 @@ else
   echo "codebase build present - skipping compile"
 fi
 
-# Clear any empty run dirs left by a prior wall-clock kill during the combine window
-# (else resume skips the empty run{N} and dies on the missing res{N}). rmdir only
-# removes EMPTY dirs, scoped to THIS job's experiments so it can't touch another
-# running batch's in-progress run dir.
+# Clear any INCOMPLETE run dirs (run{N} with no matching res{N}.tar.gz -- empty, 0-byte output,
+# or full output but no restart; all poison that would make resume skip run{N} and die on the
+# missing res{N}). Deleting lets resume re-run month N off the previous good restart. A run with
+# a matching restart is never touched. Scoped to THIS job's experiments only.
 for e in mima_hiheat0p1_qbo00 mima_hiheat0p1_qbo20; do
-  find "$GFDL_DATA/$e" -mindepth 1 -maxdepth 1 -type d -name 'run*' -empty -exec rmdir {} \; 2>/dev/null
+  for rd in "$GFDL_DATA/$e"/run[0-9]*; do
+    [ -d "$rd" ] || continue
+    n=$(basename "$rd"); n=${n#run}
+    [ -f "$GFDL_DATA/$e/restarts/res${n}.tar.gz" ] || rm -rf "$rd"
+  done
 done
 
 # Launch scripts in parallel
