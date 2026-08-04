@@ -205,7 +205,7 @@ exp.namelist = namelist = Namelist({
         # stratospheric water vapor above 100 hPa (prognostic moisture untouched),
         # so the heating-induced strat-H2O increase cannot warm the surface radiatively.
         'do_fixed_water':True,
-        'fixed_water':2.0e-6,       # kg/kg fed to RRTM (~3.2 ppmv, near control entry value)
+        'fixed_water':13.5e-6,      # kg/kg fed to RRTM = the slab control's actual stratospheric value
         'fixed_water_pres':100.e2   # Pa: fix radiative H2O at p < 100 hPa
     },
 
