@@ -226,6 +226,43 @@ def compute_fake_qbo(lat, p_full, z_full, qbo_amp, time_days=0):
 
     return qbo, qbo_time, times, p_full
 
+def compute_canonical_qbo_time(p_full, times_days, table_path, qbo_tab_scale=1.0):
+    """
+    Equatorial time series of the TABULATED canonical QBO nudging target (do_tab_qbo),
+    mirroring the Fortran: periodic-linear in time (30-day months), linear in ln(p)
+    clamped outside the table range, then the same tanh altitude window and equatorial
+    latitude factor as the sinusoidal fake_qbo.
+
+    Returns ndarray (ntimes, nlev) in m/s.
+    """
+    with open(table_path) as f:
+        lines = [l for l in f if not l.startswith('#')]
+    nlev_tab, ntime = (int(x) for x in lines[0].split())
+    plev = np.array([float(x) for x in lines[1].split()])  # hPa
+    utab = np.array([[float(x) for x in lines[2 + j].split()] for j in range(nlev_tab)])
+    order = np.argsort(plev)  # ascending p for interpolation in ln(p)
+    lnp_tab = np.log(plev[order] * 100.0)
+    utab = utab[order]
+
+    # same windows as compute_fake_qbo
+    p_b, del_p_b, p_t, del_p_t = 8000.0, 500.0, 800.0, 50.0
+    alt_profile = (1 - np.tanh((p_full - p_b) / del_p_b)) * (1 + np.tanh((p_full - p_t) / del_p_t))
+    lat_eq_factor = (1 + np.tanh((0 - np.pi*(-12.0)/180.0) / (np.pi*2.0/180.0))) * \
+                    (1 - np.tanh((0 - np.pi*12.0/180.0) / (np.pi*2.0/180.0)))
+
+    lnp = np.log(np.maximum(p_full, 1.0))
+    out = np.zeros((len(times_days), len(p_full)))
+    for i, t in enumerate(times_days):
+        tmon = np.mod(t / 30.0, ntime)
+        it1 = int(tmon) % ntime
+        it2 = (it1 + 1) % ntime
+        wt = tmon - int(tmon)
+        ut = (1 - wt) * utab[:, it1] + wt * utab[:, it2]
+        uz = np.interp(lnp, lnp_tab, ut)  # np.interp clamps outside the table range
+        out[i] = qbo_tab_scale * uz * alt_profile * lat_eq_factor / 16.0
+    return out
+
+
 def create_pressure_height_grid(num_levels=50, scale_heights=6.0, surf_res=0.1, exponent=2.5):
     """
     Create pressure and height grids matching the model configuration.
@@ -357,12 +394,19 @@ def main():
         'ytick.labelsize': 16,
         'legend.fontsize': 16,
     })
-    fig = plt.figure(figsize=(13.3, 5.5))
-    gs = GridSpec(1, 3, figure=fig, wspace=0.3)
+    # Optional 4th panel: the canonical (tabulated, observed-composite) QBO cycle
+    canonical_table = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   'input', 'qbo_canonical_cycle.txt')
+    have_canonical = os.path.exists(canonical_table) and do_sin_qbo
+    npanels = 4 if have_canonical else 3
+
+    fig = plt.figure(figsize=(4.43 * npanels, 5.5))
+    gs = GridSpec(1, npanels, figure=fig, wspace=0.3)
 
     ax1 = fig.add_subplot(gs[0, 0])
     ax2 = fig.add_subplot(gs[0, 1])
     ax3 = fig.add_subplot(gs[0, 2])
+    ax4 = fig.add_subplot(gs[0, 3]) if have_canonical else None
 
     cb_pad = 0.09
     # Panel 1: EWA heating vs pressure and latitude
@@ -433,9 +477,34 @@ def main():
     ax3.set_xticklabels(['yr 0', '1', '2', '3', '4', '5', '6', '7'])
     ax3.set_title(r'(c) $\overline{u}_\mathrm{QBO}$, $\phi$=0')
     ax3.set_ylim(200, 2)
-    ax1.set_yticks([100, 10])
-    ax1.set_yticklabels(['100', '10'])
+    ax3.set_yticks([100, 10])
+    ax3.set_yticklabels(['100', '10'])
     ax3.grid(True, alpha=0.3)
+
+    # Panel 4: canonical (observed-composite) QBO at equator vs pressure and time
+    if have_canonical:
+        qbo_can = compute_canonical_qbo_time(p_full, times, canonical_table)
+        qbo_can_padded = np.zeros((len(times), num_levels + 2))
+        qbo_can_padded[:, 1:-1] = qbo_can
+        times_months = times / 30.0
+        c4 = ax4.contourf(times_months, p_extended_hPa, qbo_can_padded.T, levels=levels_qbo,
+                          cmap='RdBu_r', extend='both')
+        ax4.contour(times_months, p_extended_hPa, qbo_can_padded.T, levels=levels_qbo,
+                    colors='k', linewidths=0.5, alpha=0.3)
+        cb = plt.colorbar(c4, ax=ax4, orientation='horizontal', label=r'(m s$^{-1}$)', pad=cb_pad)
+        ticks = cb.get_ticks()
+        if len(ticks) >= 2:
+            cb.set_ticks([ticks[0], ticks[-1]])
+            cb.set_ticklabels([f"{t:.3g}" for t in [ticks[0], ticks[-1]]])
+        ax4.set_yscale('log')
+        ax4.invert_yaxis()
+        ax4.set_xticks([0, 12, 24, 36, 48, 60, 72, 84])
+        ax4.set_xticklabels(['yr 0', '1', '2', '3', '4', '5', '6', '7'])
+        ax4.set_title(r'(d) canonical $\overline{u}_\mathrm{QBO}$ (obs)')
+        ax4.set_ylim(200, 2)
+        ax4.set_yticks([100, 10])
+        ax4.set_yticklabels(['100', '10'])
+        ax4.grid(True, alpha=0.3)
 
     plt.tight_layout()
 

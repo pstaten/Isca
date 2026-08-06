@@ -69,6 +69,16 @@ module damping_driver_mod
 
     ! namelist parameters for fake_qbo
        real     :: qbo_amp = 20.               ! m/s
+    ! tabulated (canonical observed) QBO cycle: nudge toward a table read from file
+    ! instead of the analytic sinusoid. Table format: see build_canonical_qbo.py.
+       logical            :: do_tab_qbo = .false.
+       character(len=256) :: qbo_table_file = 'INPUT/qbo_canonical_cycle.txt'
+       real               :: qbo_tab_scale = 1.0   ! multiplier on the tabulated winds
+
+    ! tabulated-QBO storage (read once in damping_driver_init)
+       integer            :: qbo_tab_nlev = 0, qbo_tab_ntime = 0
+       real, allocatable  :: qbo_tab_lnp(:)        ! ln(p/Pa), ascending
+       real, allocatable  :: qbo_tab_u(:,:)        ! (nlev_tab, ntime) m/s
 
 
        namelist /damping_driver_nml/  trayfric,  &
@@ -78,7 +88,8 @@ module damping_driver_mod
                                       do_const_drag, const_drag_amp,const_drag_off, &
                                       do_sin_qbo, do_ewa_htg, &
                                       h_amp, p_s, p_center, p_width, lat_width, lat_center, &
-                                      both_hemispheres, qbo_amp
+                                      both_hemispheres, qbo_amp, &
+                                      do_tab_qbo, qbo_table_file, qbo_tab_scale
                                           !mj
     
     !
@@ -587,6 +598,8 @@ module damping_driver_mod
                           missing_value=missing_value               )
        endif
 
+       if (do_tab_qbo) call read_qbo_table
+
        if (do_ewa_htg) then
 
         id_tdt_ewa = &
@@ -834,7 +847,46 @@ module damping_driver_mod
 
      end subroutine ewa_heating
 
-    
+
+    !#######################################################################
+
+     subroutine read_qbo_table
+    ! Read the canonical observed QBO cycle (output of build_canonical_qbo.py):
+    ! '#' comment lines, then "nlev ntime", the pressure levels (hPa, surface-first),
+    ! then nlev rows of ntime winds (m/s). Time columns are model months (30 days).
+    ! Levels are stored ascending in ln(p) for the interpolation in fake_qbo.
+        integer :: unit, ios, j
+        character(len=1024) :: line
+        real, allocatable :: plev(:)
+
+        if (.not. file_exist(trim(qbo_table_file))) call error_mesg ('damping_driver', &
+             'do_tab_qbo=.true. but qbo_table_file not found: '//trim(qbo_table_file), FATAL)
+        open (newunit=unit, file=trim(qbo_table_file), form='formatted', action='read')
+        do
+          read (unit, '(a)', iostat=ios) line
+          if (ios /= 0) call error_mesg ('damping_driver', &
+               'qbo_table_file ended before header line', FATAL)
+          if (line(1:1) /= '#') exit
+        enddo
+        read (line, *) qbo_tab_nlev, qbo_tab_ntime
+        allocate (plev(qbo_tab_nlev))
+        allocate (qbo_tab_lnp(qbo_tab_nlev), qbo_tab_u(qbo_tab_nlev, qbo_tab_ntime))
+        read (unit, *) plev
+        do j = 1, qbo_tab_nlev
+          read (unit, *) qbo_tab_u(j,:)
+        enddo
+        close (unit)
+        if (plev(1) > plev(qbo_tab_nlev)) then        ! file lists 70 -> 10 hPa
+          plev = plev(qbo_tab_nlev:1:-1)
+          qbo_tab_u = qbo_tab_u(qbo_tab_nlev:1:-1, :)
+        endif
+        qbo_tab_lnp = log(plev * 100.0)               ! hPa -> Pa
+        if (mpp_pe() == mpp_root_pe()) write (stdlog(),*) &
+             'damping_driver: tabulated QBO cycle: ', qbo_tab_nlev, ' levels x ', &
+             qbo_tab_ntime, ' months from '//trim(qbo_table_file)
+        deallocate (plev)
+     end subroutine read_qbo_table
+
     !#######################################################################
 
      subroutine fake_qbo (pfull, zfull, lat, u, utnd, seconds, days, daysperyear, nlon, nlat, nlev)
@@ -867,14 +919,55 @@ module damping_driver_mod
         ! del_lat: transition width in TANH for latitude profile (radians)
         ! alpha: relaxation rate (s^-1)
         real :: m, nu, p_b, del_p_b, p_t, del_p_t, lat_n, lat_s, del_lat, alpha
+
+        ! tabulated-QBO locals
+        real :: tsec, tmon, wt, wz, lnp, uz
+        integer :: it1, it2, iz, jlat, ilon
+        real, allocatable :: utab(:)
         !-----------------------------------------------------------------------
 
 
-      ! QBO function
+      ! QBO target: analytic symmetric sinusoid, or the tabulated canonical cycle.
+      ! Time arithmetic in REAL: the previous integer expression days*24*3600
+      ! overflowed 32-bit at model day 24856 (~run 829), causing a one-time
+      ! spurious QBO phase jump.
+        tsec = real(days) * 86400.0 + real(seconds)
+        if (do_tab_qbo) then
+          ! periodic-linear in time (model months = 30 days), linear in ln(p);
+          ! clamped outside the table's pressure range (the tanh altitude window
+          ! tapers the nudging to zero there anyway).
+          tmon = mod (tsec / (30.0*86400.0), real(qbo_tab_ntime))
+          it1  = int(tmon) + 1
+          it2  = mod (it1, qbo_tab_ntime) + 1
+          wt   = tmon - real(int(tmon))
+          allocate (utab(qbo_tab_nlev))
+          utab = (1.0 - wt) * qbo_tab_u(:,it1) + wt * qbo_tab_u(:,it2)
+          do ilev = 1, nlev
+            do jlat = 1, nlat
+              do ilon = 1, nlon
+                lnp = log (max (pfull(ilon,jlat,ilev), 1.0))
+                if (lnp <= qbo_tab_lnp(1)) then
+                  uz = utab(1)
+                else if (lnp >= qbo_tab_lnp(qbo_tab_nlev)) then
+                  uz = utab(qbo_tab_nlev)
+                else
+                  do iz = 1, qbo_tab_nlev - 1
+                    if (lnp <= qbo_tab_lnp(iz+1)) exit
+                  enddo
+                  wz = (lnp - qbo_tab_lnp(iz)) / (qbo_tab_lnp(iz+1) - qbo_tab_lnp(iz))
+                  uz = (1.0 - wz) * utab(iz) + wz * utab(iz+1)
+                endif
+                qbo(ilon,jlat,ilev) = qbo_tab_scale * uz
+              enddo
+            enddo
+          enddo
+          deallocate (utab)
+        else
       ! qbo_amp is now a namelist parameter
-        nu = 2. * acos(-1.0) / ((28.0/12.0) * daysperyear/daypsec) ! 28-month period
-        m = -2. * acos(-1.0) / 40000 ! 40 km vertical wavelength
-        qbo = qbo_amp * COS(m * zfull - nu * (days*24*3600 + seconds))
+          nu = 2. * acos(-1.0) / ((28.0/12.0) * daysperyear/daypsec) ! 28-month period
+          m = -2. * acos(-1.0) / 40000 ! 40 km vertical wavelength
+          qbo = qbo_amp * COS(m * zfull - nu * tsec)
+        endif
 
       ! Relaxation rate (inverse of nudging timescale)
         alpha = (1./(5 * 24 * 3600)) ! 5-day relaxation timescale
