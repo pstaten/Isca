@@ -45,5 +45,5 @@ else
   echo "$(date '+%F %T') resubmitted runner. [$progress]" >> "$LOG"
 fi
 
-sbatch --begin=now+1h "$GFDL_BASE/auto_resubmit_fixh2o.sh" >/dev/null 2>&1
+sbatch --begin=now+60minutes "$GFDL_BASE/auto_resubmit_fixh2o.sh" >> "$LOG" 2>&1
 echo "$(date '+%F %T') rescheduled +1h" >> "$LOG"
