@@ -40,6 +40,9 @@ print(f"removed R-asymmetric component: max |A| = {np.abs(resid_asym).max():.3f}
 print(f"removed zonal deviations: rms = {zonal_rms:.3f} K")
 
 ds.variables[name][:] = np.repeat(Zs[:, :, None], sst.shape[2], axis=2)
+# FMS interpolator convention: the field name must match sst_file (= the file basename)
+ds.renameVariable(name, "sst_ctrl_clim_sym")
+name = "sst_ctrl_clim_sym"
 ds.setncattr("history", "symmetrized (zonal mean + lat/month+6 R-fold) from sst_ctrl_clim.nc "
                         "by build_sym_sst.py")
 ds.close()
